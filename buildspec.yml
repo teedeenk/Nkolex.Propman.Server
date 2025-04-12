@@ -1,0 +1,16 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      dotnet: 9.0  # Use 7.0 or 8.0 if that's what you're using
+  build:
+    commands:
+      - echo "Restoring packages..."
+      - dotnet restore
+      - echo "Building app..."
+      - dotnet publish -c Release -o published-app
+artifacts:
+  files:
+    - '**/*'
+  base-directory: published-app
