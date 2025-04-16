@@ -11,6 +11,6 @@ phases:
       - echo "Building app..."
       - dotnet publish -c Release -o published-app
 artifacts:
+  base-directory: published-app
   files:
     - '**/*'
-  base-directory: published-app
