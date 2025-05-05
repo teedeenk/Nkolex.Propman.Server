@@ -12,6 +12,5 @@ phases:
       - dotnet publish -c Release -o published-app
 artifacts:
   base-directory: published-app
-  name: BuildArtifact
   files:
     - '**/*'
