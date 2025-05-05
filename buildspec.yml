@@ -10,7 +10,7 @@ phases:
       - dotnet restore
       - echo "Building app..."
       - dotnet publish -c Release -o published-app
-      - echo "web: dotnet Nkolex.Propman.Server.dll" > published-app/Procfile 
+      - cp Procfile published-app/
 artifacts:
   base-directory: published-app
   files:
