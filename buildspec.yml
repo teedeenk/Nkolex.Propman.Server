@@ -13,7 +13,9 @@ phases:
   post_build:
     commands:
       - echo "Copying Procfile..."
-      - cp Procfile published-app/artifacts
+      - cp Procfile published-app/
+
+artifacts:
   base-directory: published-app
   files:
     - '**/*'
