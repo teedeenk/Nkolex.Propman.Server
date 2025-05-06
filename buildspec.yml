@@ -15,7 +15,7 @@ phases:
       - echo "Copying Procfile..."
       - cp Procfile published-app/
 
-  artifacts:
+ artifacts:
     base-directory: published-app
     files:
         - '**/*'
