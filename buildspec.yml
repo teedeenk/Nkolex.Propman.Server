@@ -10,8 +10,10 @@ phases:
       - dotnet restore
       - echo "Building app..."
       - dotnet publish -c Release -o published-app
-      - cp Procfile published-app/
-artifacts:
+  post_build:
+    commands:
+      - echo "Copying Procfile..."
+      - cp Procfile published-app/artifacts:
   base-directory: published-app
   files:
     - '**/*'
