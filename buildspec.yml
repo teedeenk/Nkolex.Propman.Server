@@ -3,7 +3,7 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      dotnet: 9.0.4
+      dotnet: 8.0
   build:
     commands:
       - echo "Restoring packages..."
