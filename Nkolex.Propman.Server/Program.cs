@@ -1,4 +1,3 @@
-
 using Microsoft.OpenApi.Models;
 
 namespace Nkolex.Propman.Server
@@ -12,6 +11,19 @@ namespace Nkolex.Propman.Server
             // Add services to the container.
 
             builder.Services.AddControllers();
+
+            // Add CORS policy
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowLocalhost4200",
+                    policy =>
+                    {
+                        policy.WithOrigins("http://localhost:4200")
+                              .WithMethods("GET")
+                              .AllowAnyHeader();
+                    });
+            });
+
             // Add OpenAPI/Swagger services
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
@@ -21,10 +33,12 @@ namespace Nkolex.Propman.Server
 
             var app = builder.Build();
 
+            // Use CORS policy
+            app.UseCors("AllowLocalhost4200");
+
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
-                // Enable Swagger UI in development
                 app.UseSwagger();
                 app.UseSwaggerUI(c =>
                 {
