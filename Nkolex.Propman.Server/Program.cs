@@ -18,9 +18,12 @@ namespace Nkolex.Propman.Server
                 options.AddPolicy("AllowLocalhost4200",
                     policy =>
                     {
-                        policy.WithOrigins("http://localhost:4200")
-                              .WithMethods("GET")
-                              .AllowAnyHeader();
+                        policy.WithOrigins(
+                            "http://localhost:4200",
+                            "https://staging.d3q91dmmdbfhfv.amplifyapp.com/"
+                        )
+                        .WithMethods("GET")
+                        .AllowAnyHeader();
                     });
             });
 
