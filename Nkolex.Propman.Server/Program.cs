@@ -20,7 +20,7 @@ namespace Nkolex.Propman.Server
                     {
                         policy.WithOrigins(
                             "http://localhost:4200",
-                            "https://cnwnr4b3t9.execute-api.eu-north-1.amazonaws.com/prod/weatherforecast"
+                            "https://staging.d3q91dmmdbfhfv.amplifyapp.com/"
                         )
                         .WithMethods("GET")
                         .AllowAnyHeader();
