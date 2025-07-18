@@ -9,7 +9,7 @@ namespace Nkolex.Propman.Server.Controllers
     [ApiController]
     public class AccountController : ControllerBase
     {
-        [HttpPost("register")]
+        [HttpPost]
 
         public async Task<IActionResult> Register([FromBody] CreateAccountRequest request)
         {
