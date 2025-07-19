@@ -15,7 +15,7 @@ namespace Nkolex.Propman.Server
             // Add CORS policy
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowLocalhost4200",
+                options.AddPolicy("AllowFrontendClients",
                     policy =>
                     {
                         policy.WithOrigins(
@@ -37,7 +37,7 @@ namespace Nkolex.Propman.Server
             var app = builder.Build();
 
             // Use CORS policy
-            app.UseCors("AllowLocalhost4200");
+            app.UseCors("AllowFrontendClients");
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
