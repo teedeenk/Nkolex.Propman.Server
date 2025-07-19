@@ -20,7 +20,7 @@ namespace Nkolex.Propman.Server
                     {
                         policy.WithOrigins(
                             "http://localhost:4200",
-                            "https://staging.d3q91dmmdbfhfv.amplifyapp.com/"
+                            "https://staging.d3q91dmmdbfhfv.amplifyapp.com"
                         )
                         .WithMethods("GET","POST","OPTIONS")
                         .AllowAnyHeader();
