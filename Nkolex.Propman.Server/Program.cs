@@ -22,7 +22,7 @@ namespace Nkolex.Propman.Server
                             "http://localhost:4200",
                             "https://staging.d3q91dmmdbfhfv.amplifyapp.com/"
                         )
-                        .WithMethods("GET")
+                        .WithMethods("GET","POST","OPTIONS")
                         .AllowAnyHeader();
                     });
             });

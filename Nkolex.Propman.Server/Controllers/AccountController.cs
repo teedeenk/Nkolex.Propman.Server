@@ -10,7 +10,6 @@ namespace Nkolex.Propman.Server.Controllers
     public class AccountController : ControllerBase
     {
         [HttpPost]
-
         public async Task<IActionResult> Register([FromBody] CreateAccountRequest request)
         {
             ICreateAccountResponse response = new CreateAccountResponse
