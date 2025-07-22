@@ -9,15 +9,16 @@ namespace Nkolex.Propman.Server.Controllers
     [ApiController]
     public class AccountController : ControllerBase
     {
+        private readonly IAccountService _accountService;
+        public AccountController(IAccountService accountService)
+        {
+            _accountService = accountService ?? throw new ArgumentNullException(nameof(accountService));
+        }
+
         [HttpPost]
         public async Task<IActionResult> Register([FromBody] CreateAccountRequest request)
         {
-            ICreateAccountResponse response = new CreateAccountResponse
-            {
-                Success = true,
-                Message = "Account created successfully",
-                UserId = "generated-user-id"
-            };
+            var response = await _accountService.AddUserAsync(request);
 
             return Ok(response);
         }

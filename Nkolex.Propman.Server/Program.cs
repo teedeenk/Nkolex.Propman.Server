@@ -1,15 +1,20 @@
 using Microsoft.OpenApi.Models;
+using Nkolex.Propman.Server.Abstractions;
+using Nkolex.Propman.Server.Models;
+using Nkolex.Propman.Server.Services;
 
 namespace Nkolex.Propman.Server
 {
-    public class Program
+    public partial class Program
     {
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
+            builder.Services.AddTransient<ICreateAccountRequest, CreateAccountRequest>();
+            builder.Services.AddTransient<ICreateAccountResponse, CreateAccountResponse>();
+            builder.Services.AddTransient<IAccountService, AccountService>();
             builder.Services.AddControllers();
 
             // Add CORS policy
@@ -58,4 +63,5 @@ namespace Nkolex.Propman.Server
             app.Run();
         }
     }
+    public partial class Program { }
 }
