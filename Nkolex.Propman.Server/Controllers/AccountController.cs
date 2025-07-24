@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Nkolex.Propman.Server.Abstractions;
 using Nkolex.Propman.Server.Models;
 

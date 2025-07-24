@@ -11,7 +11,7 @@ namespace Nkolex.Propman.Tests
 
         public AccountServiceTests() : base (new TestWebApplicationFactory<Program>())
         {
-            _accountService = _factory.Services.GetRequiredService<IAccountService>();
+            _accountService = Factory.Services.GetRequiredService<IAccountService>();
         }
 
         [Fact]
@@ -27,9 +27,21 @@ namespace Nkolex.Propman.Tests
             Assert.NotNull(sud);
             Assert.Equal(createAccountResponse.Message,sud.Message);
         }
+
+        [Fact]
+        public async Task Given_Invalid_CreateAccountRequest_AddUserAsync_Should_ThrowException()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            createAccountRequest.Email = ""; 
+            if (_accountService == null)
+            {
+                throw new InvalidOperationException("AccountService is not registered in the service collection.");
+            }
+            await Assert.ThrowsAsync<ArgumentNullException>(() => _accountService.AddUserAsync(createAccountRequest));
+        }
         private ICreateAccountRequest CreateTestAccountRequest()
         {
-            var createAccountRequest = _factory.Services.GetRequiredService<ICreateAccountRequest>();
+            var createAccountRequest = Factory.Services.GetRequiredService<ICreateAccountRequest>();
             createAccountRequest.Name = "John";
             createAccountRequest.Surname = "Doe";
             createAccountRequest.PhoneNumber = "1234567890";
@@ -42,7 +54,7 @@ namespace Nkolex.Propman.Tests
 
         private ICreateAccountResponse CreateTestAccountResponse()
         {
-            var createAccountResponse = _factory.Services.GetRequiredService<ICreateAccountResponse>();
+            var createAccountResponse = Factory.Services.GetRequiredService<ICreateAccountResponse>();
             createAccountResponse.Success = true;
             createAccountResponse.Message = "Account created successfully";
             createAccountResponse.UserId = "test-user-id";

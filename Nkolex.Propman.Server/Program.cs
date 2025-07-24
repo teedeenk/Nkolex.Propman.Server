@@ -1,6 +1,9 @@
 using Microsoft.OpenApi.Models;
 using Nkolex.Propman.Server.Abstractions;
+using Nkolex.Propman.Server.Data;
+using Nkolex.Propman.Server.Data.Repositories;
 using Nkolex.Propman.Server.Models;
+using Nkolex.Propman.Server.Models.DTOs;
 using Nkolex.Propman.Server.Services;
 
 namespace Nkolex.Propman.Server
@@ -15,6 +18,9 @@ namespace Nkolex.Propman.Server
             builder.Services.AddTransient<ICreateAccountRequest, CreateAccountRequest>();
             builder.Services.AddTransient<ICreateAccountResponse, CreateAccountResponse>();
             builder.Services.AddTransient<IAccountService, AccountService>();
+            builder.Services.AddTransient<IAccount, Account>();
+            builder.Services.AddTransient<IRepository<IAccount>, FlatFileRepository>();
+            builder.Services.AddTransient<IAccountDataService, AccountDataService>();
             builder.Services.AddControllers();
 
             // Add CORS policy

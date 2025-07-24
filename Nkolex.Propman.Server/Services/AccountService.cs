@@ -1,11 +1,20 @@
 ﻿using Nkolex.Propman.Server.Abstractions;
 using Nkolex.Propman.Server.Models;
+using Nkolex.Propman.Server.Models.DTOs;
+using System.Reflection.PortableExecutable;
 
 namespace Nkolex.Propman.Server.Services
 {
     public class AccountService : IAccountService
     {
-        public Task<ICreateAccountResponse> AddUserAsync(ICreateAccountRequest createAccountRequest)
+        private readonly IServiceProvider _serviceProvider;
+
+        public AccountService(IServiceProvider serviceProvider)
+        {
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        }
+
+        public async Task<ICreateAccountResponse> AddUserAsync(ICreateAccountRequest createAccountRequest)
         {
             if (createAccountRequest == null)
             {
@@ -23,13 +32,33 @@ namespace Nkolex.Propman.Server.Services
                 throw new ArgumentNullException(nameof(createAccountRequest), "CreateAccountRequest cannot be null");
             }
 
+            IAccount entity = RequestToAccount(createAccountRequest);
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService>();
+                await dataService.AddAsync(entity);
+            }
+
             ICreateAccountResponse response = new CreateAccountResponse
             {
                 Success = true,
                 Message = "Account created successfully",
                 UserId = "generated-user-id"
             };
-            return Task.FromResult(response);
+            return response;
+        }
+
+        private static IAccount RequestToAccount(ICreateAccountRequest createAccountRequest)
+        {
+            IAccount account = new Account
+            {
+                Name = createAccountRequest.Name,
+                Surname = createAccountRequest.Surname,
+                PhoneNumber = createAccountRequest.PhoneNumber,
+                Email = createAccountRequest.Email,
+                Password = createAccountRequest.Password
+            };
+            return account;
         }
     }
 }
