@@ -42,5 +42,9 @@ jobs:
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_KEY }}
           script: |
-            sudo systemctl restart propmanserver
-            sudo systemctl status propmanserver --no-pager
+              echo "Connected to $(hostname)"
+              whoami
+              ls -la /etc/systemd/system | grep propmanserver
+              echo "Restarting service..."
+              sudo systemctl restart propmanserver || echo "Restart failed with code $?"
+              sudo systemctl status propmanserver --no-pager
