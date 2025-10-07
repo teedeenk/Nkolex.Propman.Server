@@ -2,7 +2,7 @@ name: CI/CD - Deploy .NET API to DigitalOcean
 
 on:
   push:
-    branches: ["main"]
+    branches: ["master"]
 
 jobs:
   build:
