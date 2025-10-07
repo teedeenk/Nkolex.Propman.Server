@@ -46,5 +46,5 @@ jobs:
               whoami
               ls -la /etc/systemd/system | grep propmanserver
               echo "Restarting service..."
-              sudo systemctl restart propmanserver || echo "Restart failed with code $?"
-              sudo systemctl status propmanserver --no-pager
+              systemctl restart propmanserver || echo "Restart failed with code $?"
+              systemctl status propmanserver --no-pager
