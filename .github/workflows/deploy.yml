@@ -27,7 +27,7 @@ jobs:
         run: dotnet publish -c Release -o ./publish
 
       - name: Copy files to Droplet
-        uses: root
+        uses: actions/checkout@v4
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
@@ -36,7 +36,7 @@ jobs:
           target: "/var/www/html/backend/propmanserver"
 
       - name: Restart API service
-        uses: root
+        uses: actions/checkout@v4
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
