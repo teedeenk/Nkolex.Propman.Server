@@ -27,7 +27,7 @@ jobs:
         run: dotnet publish -c Release -o ./publish
 
       - name: Copy files to Droplet
-        uses: actions/checkout@v4
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
@@ -36,7 +36,7 @@ jobs:
           target: "/var/www/html/backend/propmanserver"
 
       - name: Restart API service
-        uses: actions/checkout@v4
+        uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
