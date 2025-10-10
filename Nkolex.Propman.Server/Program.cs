@@ -31,10 +31,9 @@ namespace Nkolex.Propman.Server
                     {
                         policy.WithOrigins(
                             "http://localhost:4200",
-                            "https://143.110.171.111:5001"
+                            "http://143.110.171.111:5001"
                         )
                         .AllowAnyMethod()
-                        .WithMethods("GET", "POST", "OPTIONS")
                         .AllowAnyHeader();
                     });
             });
