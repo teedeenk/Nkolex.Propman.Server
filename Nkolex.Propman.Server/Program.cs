@@ -31,9 +31,10 @@ namespace Nkolex.Propman.Server
                     {
                         policy.WithOrigins(
                             "http://localhost:4200",
-                            "https://staging.d3q91dmmdbfhfv.amplifyapp.com"
+                            "https://143.110.171.111"
                         )
-                        .WithMethods("GET","POST","OPTIONS")
+                        .AllowAnyMethod()
+                        .WithMethods("GET", "POST", "OPTIONS")
                         .AllowAnyHeader();
                     });
             });
