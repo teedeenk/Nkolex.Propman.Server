@@ -8,6 +8,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Data\Files\" />
+    <Folder Include="Data\Files\propman.json" CopyToOutputDirectory="Always" />
   </ItemGroup>
 </Project>
