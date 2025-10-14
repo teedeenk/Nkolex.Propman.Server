@@ -37,11 +37,17 @@ namespace Nkolex.Propman.Tests
         private IAccount CreateTestAccount()
         {
             var account = Factory.Services.GetRequiredService<IAccount>();
+            account.Id = Guid.NewGuid();
             account.Name = "John";
             account.Surname = "Doe";
             account.PhoneNumber = "1234567890";
             account.Email = "john.doe@example.com";
             account.Password = "TestPassword123!";
+            account.AgreeToTerms = true;
+            account.CreatedAt = DateTime.UtcNow;
+            account.UpdatedAt = DateTime.UtcNow;
+            account.DeletedAt = null;
+            account.IsDeleted = false;
             return account;
         }
     }

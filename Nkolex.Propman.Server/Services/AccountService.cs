@@ -52,11 +52,17 @@ namespace Nkolex.Propman.Server.Services
         {
             IAccount account = new Account
             {
+                Id = Guid.NewGuid(),
                 Name = createAccountRequest.Name,
                 Surname = createAccountRequest.Surname,
                 PhoneNumber = createAccountRequest.PhoneNumber,
                 Email = createAccountRequest.Email,
-                Password = createAccountRequest.Password
+                Password = createAccountRequest.Password,
+                AgreeToTerms = createAccountRequest.AgreeToTerms,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                IsDeleted = false,
+                DeletedAt = null
             };
             return account;
         }

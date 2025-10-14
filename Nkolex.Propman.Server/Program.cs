@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Nkolex.Propman.Server.Abstractions;
 using Nkolex.Propman.Server.Data;
+using Nkolex.Propman.Server.Data.ConnectionOptions;
 using Nkolex.Propman.Server.Data.Repositories;
 using Nkolex.Propman.Server.Models;
 using Nkolex.Propman.Server.Models.DTOs;
@@ -21,6 +23,22 @@ namespace Nkolex.Propman.Server
             builder.Services.AddTransient<IAccount, Account>();
             builder.Services.AddTransient<IRepository<IAccount>, FlatFileRepository>();
             builder.Services.AddTransient<IAccountDataService, AccountDataService>();
+
+            var repoSection = builder.Configuration.GetSection("RepositoryOptions");
+            builder.Services.Configure<FlatFileOptions>(repoSection.GetSection("FlatFile"));
+            var repoType = repoSection.GetValue<string>("Type");
+
+            if (repoType is "FlatFile")
+            {
+                builder.Services.AddSingleton<IRepositoryOptions>(sp =>
+                    sp.GetRequiredService<IOptions<FlatFileOptions>>().Value);
+                builder.Services.AddSingleton<IRepository<IAccount>, FlatFileRepository>();
+            }
+            else
+            {
+                throw new InvalidOperationException("Unsupported repository type");
+            }
+
             builder.Services.AddControllers();
 
             // Add CORS policy
@@ -31,7 +49,7 @@ namespace Nkolex.Propman.Server
                     {
                         policy.WithOrigins(
                             "http://localhost:4200",
-                            "http://143.110.171.111:80"
+                            "http://143.110.171.111"
                         )
                         .AllowAnyMethod()
                         .AllowAnyHeader();
@@ -59,8 +77,11 @@ namespace Nkolex.Propman.Server
                     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Nkolex Propman API v1");
                 });
             }
+            else
+            {
+                app.UseHttpsRedirection();
+            }
 
-            app.UseHttpsRedirection();
 
             app.UseAuthorization();
 

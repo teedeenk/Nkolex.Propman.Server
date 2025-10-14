@@ -1,0 +1,41 @@
+[
+  {
+    "name": "string",
+    "surname": "",
+    "phoneNumber": "string",
+    "email": "string",
+    "password": "string",
+    "id": "a888f972-0c2d-486e-8e95-b18c7e39e87d",
+    "agreeToTerms": true,
+    "createdAt": "2025-07-28T22:35:36.3555797Z",
+    "updatedAt": "2025-07-28T22:35:36.3556539Z",
+    "deletedAt": null,
+    "isDeleted": false
+  },
+  {
+    "name": "pam ",
+    "surname": "",
+    "phoneNumber": "12345678",
+    "email": "tada@smith.co",
+    "password": "12345678",
+    "id": "5d11faa3-34fe-453d-b64a-f54ddf5e1e40",
+    "agreeToTerms": true,
+    "createdAt": "2025-10-14T15:16:15.8970506Z",
+    "updatedAt": "2025-10-14T15:16:15.9407033Z",
+    "deletedAt": null,
+    "isDeleted": false
+  },
+  {
+    "name": "pamela",
+    "surname": "",
+    "phoneNumber": "12345678",
+    "email": "tada@smith.co",
+    "password": "12345678",
+    "id": "e6dad6b9-216a-47ed-9ebf-9ce065e2e504",
+    "agreeToTerms": true,
+    "createdAt": "2025-10-14T22:24:22.8808506Z",
+    "updatedAt": "2025-10-14T22:24:22.9198434Z",
+    "deletedAt": null,
+    "isDeleted": false
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "name": "string",
+    "surname": "",
+    "phoneNumber": "string",
+    "email": "string",
+    "password": "string",
+    "id": "9ff2bbfa-b752-4ed6-b097-96e91037e8ef",
+    "agreeToTerms": true,
+    "createdAt": "2025-07-28T21:46:00.8436093Z",
+    "updatedAt": "2025-07-28T21:46:00.8436786Z",
+    "deletedAt": null,
+    "isDeleted": false
+  }
+]
