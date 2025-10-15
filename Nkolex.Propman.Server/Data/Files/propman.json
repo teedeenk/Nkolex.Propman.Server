@@ -50,5 +50,31 @@
     "updatedAt": "2025-10-15T15:26:45.5964452Z",
     "deletedAt": null,
     "isDeleted": false
+  },
+  {
+    "name": "timbo",
+    "surname": "",
+    "phoneNumber": "12345678",
+    "email": "tada@smith.co",
+    "password": "12345678",
+    "id": "a6b204a2-2d6c-488a-b9c4-b7f5fcf562f0",
+    "agreeToTerms": true,
+    "createdAt": "2025-10-15T18:21:11.9341401Z",
+    "updatedAt": "2025-10-15T18:21:11.9341676Z",
+    "deletedAt": null,
+    "isDeleted": false
+  },
+  {
+    "name": "tiana",
+    "surname": "smith",
+    "phoneNumber": "12345678",
+    "email": "tada@smith.co",
+    "password": "12345678",
+    "id": "d7e2ed63-966e-4045-81f6-4f8408780d15",
+    "agreeToTerms": true,
+    "createdAt": "2025-10-15T18:23:46.5933286Z",
+    "updatedAt": "2025-10-15T18:23:46.5933545Z",
+    "deletedAt": null,
+    "isDeleted": false
   }
 ]

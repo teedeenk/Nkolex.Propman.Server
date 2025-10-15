@@ -13,11 +13,16 @@ namespace Nkolex.Propman.Server.Data.Repositories
         private readonly SemaphoreSlim _semaphore;
         private readonly JsonSerializerOptions _jsonOptions;
 
-        public FlatFileRepository(IRepositoryOptions options)
+        public FlatFileRepository(IRepositoryOptions options, IHostEnvironment env)
         {
             _options = options as FlatFileOptions
                 ?? throw new ArgumentException("Expected FlatFileOptions");
-            _filePath = _options.FilePath ?? throw new ArgumentException("FilePath must be provided in FlatFileOptions.");
+
+            if (string.IsNullOrEmpty(_options.FilePath))
+                throw new ArgumentException("FilePath must be provided in FlatFileOptions.");
+
+            _filePath = Path.Combine(env.ContentRootPath, _options.FilePath);
+
             _semaphore = new SemaphoreSlim(1, 1);
             _jsonOptions = new JsonSerializerOptions
             {
@@ -90,6 +95,7 @@ namespace Nkolex.Propman.Server.Data.Repositories
             {
                 Id = a.Id,
                 Name = a.Name,
+                Surname = a.Surname,
                 Email = a.Email,
                 Password = a.Password,
                 AgreeToTerms = a.AgreeToTerms,
