@@ -37,5 +37,18 @@
     "updatedAt": "2025-10-14T22:24:22.9198434Z",
     "deletedAt": null,
     "isDeleted": false
+  },
+  {
+    "name": "tim",
+    "surname": "",
+    "phoneNumber": "12345678",
+    "email": "tada@smith.co",
+    "password": "12345678",
+    "id": "83b592f4-d8af-4d4b-b32a-38e2c3cbeb46",
+    "agreeToTerms": true,
+    "createdAt": "2025-10-15T15:26:45.5964163Z",
+    "updatedAt": "2025-10-15T15:26:45.5964452Z",
+    "deletedAt": null,
+    "isDeleted": false
   }
 ]
