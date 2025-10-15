@@ -34,6 +34,19 @@ jobs:
           key: ${{ secrets.DO_KEY }}
           source: "./publish/*"
           target: "/var/www/html/backend/propmanserver"
+          
+      - name: Set correct ownership & permissions
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_KEY }}
+          script: |
+            echo "Fixing ownership and permissions..."
+            # Ensure the deployment folder is owned by root
+            chown -R root:wroot /var/www/html/backend/propmanserver
+            # Ensure Data folder is writable
+            chmod -R 755 /var/www/html/backend/propmanserver/publish/Data
 
       - name: Restart API service
         uses: appleboy/ssh-action@v0.1.10
