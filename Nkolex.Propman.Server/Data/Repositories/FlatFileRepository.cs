@@ -12,9 +12,12 @@ namespace Nkolex.Propman.Server.Data.Repositories
         private readonly string _filePath;
         private readonly SemaphoreSlim _semaphore;
         private readonly JsonSerializerOptions _jsonOptions;
+        private readonly ILogger<FlatFileRepository> _logger;
 
-        public FlatFileRepository(IRepositoryOptions options, IHostEnvironment env)
+        public FlatFileRepository(IRepositoryOptions options, IHostEnvironment env, ILogger<FlatFileRepository> logger)
         {
+            _logger = logger;
+
             _options = options as FlatFileOptions
                 ?? throw new ArgumentException("Expected FlatFileOptions");
 
@@ -22,6 +25,7 @@ namespace Nkolex.Propman.Server.Data.Repositories
                 throw new ArgumentException("FilePath must be provided in FlatFileOptions.");
 
             _filePath = Path.Combine(env.ContentRootPath, _options.FilePath);
+            _logger.LogInformation("Flat file path: {FilePath}", _filePath);
 
             _semaphore = new SemaphoreSlim(1, 1);
             _jsonOptions = new JsonSerializerOptions
@@ -36,6 +40,7 @@ namespace Nkolex.Propman.Server.Data.Repositories
                 Directory.CreateDirectory(directory);
                 Directory.Exists(directory);
             }
+
         }
         public async Task<int> AddAsync(IAccount entity)
         {
