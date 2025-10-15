@@ -44,7 +44,7 @@ jobs:
           script: |
             echo "Fixing ownership and permissions..."
             # Ensure the deployment folder is owned by root
-            chown -R root:wroot /var/www/html/backend/propmanserver
+            chown -R root:root /var/www/html/backend/propmanserver
             # Ensure Data folder is writable
             chmod -R 755 /var/www/html/backend/propmanserver/publish/Data
 
