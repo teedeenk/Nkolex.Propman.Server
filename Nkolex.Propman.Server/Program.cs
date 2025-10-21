@@ -71,10 +71,9 @@ namespace Nkolex.Propman.Server
                 options.AddPolicy("AllowFrontendClients",
                     policy =>
                     {
-                        policy.WithOrigins(
-                            "http://localhost:4200",
-                            "http://143.110.171.111"
-                        )
+                        var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins")
+                        .Get<string[]>();
+                        policy.WithOrigins(allowedOrigins!)
                         .AllowAnyMethod()
                         .AllowAnyHeader();
                     });
