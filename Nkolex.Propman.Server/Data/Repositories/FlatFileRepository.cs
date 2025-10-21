@@ -69,7 +69,41 @@ namespace Nkolex.Propman.Server.Data.Repositories
                 _semaphore.Release();
             }
         }
-           
+
+        public Task<int> DeleteAsync(IAccount entity)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<List<IAccount>> GetAllAsync()
+        {
+            try
+            { 
+                await _semaphore.WaitAsync();
+                var accounts = await GetAllAccountsFromFileAsync();
+                return accounts;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogInformation("There are no accounts {ex}", ex);
+                return [];
+            }
+            finally 
+            { 
+                _semaphore.Release(); 
+            }
+        }
+
+        public Task<IAccount> GetByIdAsync(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<int> UpdateAsync(IAccount entity)
+        {
+            throw new NotImplementedException();
+        }
+
         private async Task<List<IAccount>> GetAllAccountsFromFileAsync()
         {
             if (!File.Exists(_filePath))

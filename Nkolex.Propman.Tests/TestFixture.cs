@@ -28,6 +28,7 @@ namespace Nkolex.Propman.Tests
             var mockAccountRepository = Substitute.For<IRepository<IAccount>>();
             serviceCollection.AddScoped(_ => mockAccountRepository);
             serviceCollection.AddTransient<IAccountDataService, AccountDataService>();
+            serviceCollection.AddTransient<IAuthService, AuthService>();
 
             var serviceProvider = serviceCollection.BuildServiceProvider();
             TestScope = serviceProvider.CreateScope();

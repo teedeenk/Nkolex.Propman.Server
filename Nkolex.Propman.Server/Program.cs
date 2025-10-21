@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Nkolex.Propman.Server.Abstractions;
 using Nkolex.Propman.Server.Data;
@@ -7,6 +9,7 @@ using Nkolex.Propman.Server.Data.Repositories;
 using Nkolex.Propman.Server.Models;
 using Nkolex.Propman.Server.Models.DTOs;
 using Nkolex.Propman.Server.Services;
+using System.Text;
 
 namespace Nkolex.Propman.Server
 {
@@ -23,6 +26,7 @@ namespace Nkolex.Propman.Server
             builder.Services.AddTransient<IAccount, Account>();
             builder.Services.AddTransient<IRepository<IAccount>, FlatFileRepository>();
             builder.Services.AddTransient<IAccountDataService, AccountDataService>();
+            builder.Services.AddSingleton<IAuthService, AuthService>();
 
             var repoSection = builder.Configuration.GetSection("RepositoryOptions");
             builder.Services.Configure<FlatFileOptions>(repoSection.GetSection("FlatFile"));
@@ -40,6 +44,26 @@ namespace Nkolex.Propman.Server
             }
 
             builder.Services.AddControllers();
+
+            //Configure JWT Authentication
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                        ValidAudience = builder.Configuration["Jwt:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
+                            builder.Configuration["Jwt:Key"]!)),
+                        ClockSkew = TimeSpan.Zero
+                    };
+                });
+
+            builder.Services.AddAuthorization();
 
             // Add CORS policy
             builder.Services.AddCors(options =>
