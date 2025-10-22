@@ -23,6 +23,11 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
+      - name: Run xUnit Tests
+        run: |
+          echo "Running xUnit tests..."
+          dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test_results.trx" --results-directory ./TestResults
+
       - name: Publish
         run: dotnet publish -c Release -o ./publish
 

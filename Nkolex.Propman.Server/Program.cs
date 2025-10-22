@@ -27,6 +27,7 @@ namespace Nkolex.Propman.Server
             builder.Services.AddTransient<IRepository<IAccount>, FlatFileRepository>();
             builder.Services.AddTransient<IAccountDataService, AccountDataService>();
             builder.Services.AddSingleton<IAuthService, AuthService>();
+            builder.Services.AddSingleton<IDataStore, DataStore>();
 
             var repoSection = builder.Configuration.GetSection("RepositoryOptions");
             builder.Services.Configure<FlatFileOptions>(repoSection.GetSection("FlatFile"));

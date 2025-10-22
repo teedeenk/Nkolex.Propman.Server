@@ -24,11 +24,6 @@ namespace Nkolex.Propman.Server.Data
             {
                 throw new ArgumentException("Account entity must have a valid ID before being saved to repository.", nameof(entity));
             }
-            //using (var scope = _serviceProvider.CreateScope())
-            //{
-            //    var repository = scope.ServiceProvider.GetRequiredService<IRepository<IAccount>>();
-            //    repository.AddAsync(entity);
-            //}
             _repo.AddAsync(entity);
             _logger.LogInformation("Account added");
             return Task.FromResult(1);

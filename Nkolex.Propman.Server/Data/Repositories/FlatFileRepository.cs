@@ -2,6 +2,7 @@
 using Nkolex.Propman.Server.Abstractions;
 using Nkolex.Propman.Server.Data.ConnectionOptions;
 using Nkolex.Propman.Server.Models.DTOs;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 namespace Nkolex.Propman.Server.Data.Repositories
@@ -13,8 +14,9 @@ namespace Nkolex.Propman.Server.Data.Repositories
         private readonly SemaphoreSlim _semaphore;
         private readonly JsonSerializerOptions _jsonOptions;
         private readonly ILogger<FlatFileRepository> _logger;
+        private IDataStore _dataStore;
 
-        public FlatFileRepository(IRepositoryOptions options, IHostEnvironment env, ILogger<FlatFileRepository> logger)
+        public FlatFileRepository(IRepositoryOptions options, IHostEnvironment env, ILogger<FlatFileRepository> logger, IDataStore dataStore)
         {
             _logger = logger;
 
@@ -41,6 +43,7 @@ namespace Nkolex.Propman.Server.Data.Repositories
                 Directory.Exists(directory);
             }
 
+            _dataStore = dataStore;
         }
         public async Task<int> AddAsync(IAccount entity)
         {
@@ -54,9 +57,9 @@ namespace Nkolex.Propman.Server.Data.Repositories
             {
                 var accounts = await GetAllAccountsFromFileAsync();
 
-                if (accounts.Any(a => a.Id == entity.Id))
+                if (accounts.Any(a => a.Id == entity.Id || a.Email == entity.Email))
                 {
-                    throw new InvalidOperationException($"An account with ID {entity.Id} already exists.");
+                    throw new InvalidOperationException($"Account: {entity.Email} already exists.");
                 }
 
                 accounts.Add(entity);
@@ -108,7 +111,7 @@ namespace Nkolex.Propman.Server.Data.Repositories
         {
             if (!File.Exists(_filePath))
             {
-                return new List<IAccount>();
+                return [];
             }
 
             try
@@ -116,38 +119,24 @@ namespace Nkolex.Propman.Server.Data.Repositories
                 var json = await File.ReadAllTextAsync(_filePath);
                 if (string.IsNullOrWhiteSpace(json))
                 {
-                    return new List<IAccount>();
+                    return [];
                 }
 
-                var accounts = JsonSerializer.Deserialize<List<Account>>(json, _jsonOptions);
-                return accounts?.Cast<IAccount>().ToList() ?? new List<IAccount>();
+                var accounts = JsonSerializer.Deserialize<DataStore>(json, _jsonOptions);
+                return accounts?.AccountTable.Cast<IAccount>().ToList() ?? [];
             }
-            catch (JsonException)
+            catch (JsonException js)
             {
-                return new List<IAccount>();
+                _logger.LogError("Error: {js.Message}", js.Message);
+                return [];
             }
         }
 
         private async Task WriteAccountsToFileAsync(List<IAccount> accounts)
         {
-            var concreteAccounts = accounts.Select(a => new Account
-            {
-                Id = a.Id,
-                Name = a.Name,
-                Surname = a.Surname,
-                Email = a.Email,
-                Password = a.Password,
-                AgreeToTerms = a.AgreeToTerms,
-                CreatedAt = a.CreatedAt,
-                UpdatedAt = a.UpdatedAt,
-                DeletedAt = a.DeletedAt,
-                IsDeleted = a.IsDeleted,
-                PhoneNumber = a.PhoneNumber
-            }).ToList();
-
-            var json = JsonSerializer.Serialize(concreteAccounts, _jsonOptions);
+            _dataStore.AccountTable = [.. accounts.Cast<Account>()];
+            var json = JsonSerializer.Serialize(_dataStore, _jsonOptions);
             await File.WriteAllTextAsync(_filePath, json);
         }
     }
-
 }
