@@ -46,6 +46,16 @@ namespace Nkolex.Propman.Server
 
             builder.Services.AddControllers();
 
+            string jwtKey;
+            if(builder.Environment.IsProduction())
+            {
+                jwtKey = File.ReadAllText("/etc/propmanserver/jwt-secret.txt").Trim();
+            }
+            else
+            {
+                jwtKey = builder.Configuration["Jwt:Key"]!;
+            }
+
             //Configure JWT Authentication
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
@@ -59,7 +69,7 @@ namespace Nkolex.Propman.Server
                         ValidIssuer = builder.Configuration["Jwt:Issuer"],
                         ValidAudience = builder.Configuration["Jwt:Audience"],
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                            builder.Configuration["Jwt:Key"]!)),
+                            jwtKey)),
                         ClockSkew = TimeSpan.Zero
                     };
                 });
