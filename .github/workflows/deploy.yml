@@ -30,7 +30,7 @@ jobs:
           echo "Running xUnit tests..."
           dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test_results.trx" --results-directory ./TestResults
         env:
-          ASPNETCORE_ENVIRONMENT: Production
+          ASPNETCORE_ENVIRONMENT: Development
 
       - name: Publish
         run: dotnet publish -c Release -o ./publish
