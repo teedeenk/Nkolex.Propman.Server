@@ -22,14 +22,20 @@ jobs:
 
       - name: Build
         run: dotnet build --configuration Release --no-restore
+        env:
+          ASPNETCORE_ENVIRONMENT: Production
 
       - name: Run xUnit Tests
         run: |
           echo "Running xUnit tests..."
           dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test_results.trx" --results-directory ./TestResults
+        env:
+          ASPNETCORE_ENVIRONMENT: Production
 
       - name: Publish
         run: dotnet publish -c Release -o ./publish
+        env:
+          ASPNETCORE_ENVIRONMENT: Production
 
       - name: Copy files to Droplet
         uses: appleboy/scp-action@v0.1.7
