@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -46,15 +47,18 @@ namespace Nkolex.Propman.Server
 
             builder.Services.AddControllers();
 
-            string jwtKey;
-            if(builder.Environment.IsProduction())
+            var jwtSecretFile = "/etc/propmanserver/jwt-secret.txt";
+            var jwtKey = string.Empty;
+            if (File.Exists(jwtSecretFile))
             {
-                jwtKey = File.ReadAllText("/etc/propmanserver/jwt-secret.txt").Trim();
+                jwtKey = File.ReadAllText(jwtSecretFile).Trim();
+                builder.Configuration["Jwt:Key"] = jwtKey;
             }
             else
             {
                 jwtKey = builder.Configuration["Jwt:Key"]!;
             }
+
 
             //Configure JWT Authentication
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
