@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Nkolex.Propman.Server;
 using Nkolex.Propman.Server.Abstractions;
 using Nkolex.Propman.Server.Data;
+using Nkolex.Propman.Server.Models.DTOs;
 using Nkolex.Propman.Server.Services;
 using Nkolex.Propman.Tests;
 using NSubstitute;
@@ -53,6 +54,24 @@ namespace Nkolex.Propman.Tests
 
             Assert.NotNull(sud);
             Assert.Equal(accounts, sud);
+        }
+
+        [Fact]
+        public async Task Given_valid_email_GetByIdAsync_Should_Return_Account()
+        {
+            var account = CreateTestAccount();
+            _repo = Substitute.For<IRepository<IAccount>>();
+            _repo.GetByIdAsync(account.Email).Returns(new Account { Email = account.Email});
+
+            var logger = Substitute.For<ILogger<AccountDataService>>();
+            var serviceProvider = Substitute.For<IServiceProvider>();
+
+            var accountService = new AccountDataService(serviceProvider, logger, _repo);
+
+            var sud = await accountService.GetByIdAsync(account.Email);
+
+            Assert.NotNull(sud);
+            Assert.Equal(account.Email, sud.Email);
         }
 
         private IAccount CreateTestAccount()

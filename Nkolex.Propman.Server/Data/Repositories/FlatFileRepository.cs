@@ -97,9 +97,28 @@ namespace Nkolex.Propman.Server.Data.Repositories
             }
         }
 
-        public Task<IAccount> GetByIdAsync(int id)
+        public async Task<IAccount> GetByIdAsync(string email)
         {
-            throw new NotImplementedException();
+            try
+            {
+                await _semaphore.WaitAsync();
+                var accounts = await GetAllAccountsFromFileAsync();
+                var account = accounts.Where(x => x.Email == email).FirstOrDefault();
+                if (account == null)
+                {
+                    return new Account();
+                }
+                return account;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogInformation("No account found: {ex}", ex.Message);
+                return new Account();
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
         }
 
         public Task<int> UpdateAsync(IAccount entity)

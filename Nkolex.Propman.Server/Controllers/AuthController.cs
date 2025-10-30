@@ -38,12 +38,12 @@ namespace Nkolex.Propman.Server.Controllers
                 }
 
                 var token = _authService.GenerateJwtAsync(user);
-
                 return Ok(new LoginResponse
                 {
                     Token = token.Result,
                     Email = user.Email,
                     Expiration = DateTime.UtcNow.AddHours(2),
+                    FullName = user.FullName
                 });
             }
             catch (Exception ex)
@@ -58,8 +58,14 @@ namespace Nkolex.Propman.Server.Controllers
         public IActionResult GetProfile()
         {
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
-            _logger.LogInformation("Welcome: {email}", email);
-            return Ok(new {email});
+            if(email == null)
+            {
+                return BadRequest();
+            }
+
+            var user = _authService.GetUserByIdAsync(email);
+            var fullName = $"{user.Result.FullName}";
+            return Ok(new { fullName });
         }
 
         private static User ConvertRequestToUser(LoginRequest request)

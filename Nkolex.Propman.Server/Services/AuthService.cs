@@ -61,7 +61,8 @@ namespace Nkolex.Propman.Server.Services
                 var user = new User
                 {
                     Email = account.Email,
-                    PasswordHash = account.Password
+                    PasswordHash = account.Password,
+                    FullName = $"{account.Name} {account.Surname}"
                 };
                 users.Add(user);
             }
@@ -114,6 +115,23 @@ namespace Nkolex.Propman.Server.Services
 
             var result = new JwtSecurityTokenHandler().WriteToken(token);
             return await Task.FromResult(result);
+        }
+
+        public async Task<User> GetUserByIdAsync(string email)
+        {
+            if (_accountDataService is null)
+            {
+                _logger.LogWarning("{IAccountDataService} doesn't exist...", nameof(IAccountDataService));
+                throw new ArgumentNullException(nameof(email));
+            }
+            var account = await _accountDataService.GetByIdAsync(email);
+            var user = new User
+            {
+                Email = account.Email,
+                FullName = $"{account.Name} {account.Surname}",
+                PasswordHash = account.Password
+            };
+            return user;
         }
     }
 }

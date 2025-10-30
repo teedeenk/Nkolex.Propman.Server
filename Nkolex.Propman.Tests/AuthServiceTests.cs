@@ -90,12 +90,40 @@ namespace Nkolex.Propman.Tests
             Assert.IsType<string>(result);
         }
 
+        [Fact]
+        public async Task Given_Valid_Email_GetUserByID_Should_Return_One_User()
+        {
+            var user = CreateUser();
+            
+            var logger = Substitute.For<ILogger<AuthService>>();
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(FakeJwtConfig())
+                .Build();
+            var accountDataService = Substitute.For<IAccountDataService>();
+            accountDataService.GetByIdAsync(user.Email).Returns(new Account
+            {
+                Email = user.Email,
+                Name = "Joe",
+                Surname = "Dohn",
+                Password = "Password123!"
+            });
+
+            var authService = new AuthService(logger, accountDataService, configuration);
+            var sud = await authService.GetUserByIdAsync(user.Email);
+
+            Assert.NotNull(sud);
+            Assert.Equal(user.Email, sud.Email);
+            Assert.Equal(user.FullName, sud.FullName);
+            Assert.Equal(user.PasswordHash, sud.PasswordHash);
+        }
+
         private static User CreateUser()
         {
             var user = new User
             {
                 Email = "test@example.com",
-                PasswordHash = "Password123!"
+                PasswordHash = "Password123!",
+                FullName = "Joe Dohn"
             };
             return user;
         }

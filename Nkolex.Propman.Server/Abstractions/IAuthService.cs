@@ -7,5 +7,6 @@ namespace Nkolex.Propman.Server.Abstractions
         Task<User?> ValidateUserAsync(User user, List<User> users);
         Task<List<User>> GetUsersAsync();
         Task<string> GenerateJwtAsync(User user);
+        Task<User> GetUserByIdAsync(string email);                     
     }
 }

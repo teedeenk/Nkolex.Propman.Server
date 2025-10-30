@@ -40,9 +40,10 @@ namespace Nkolex.Propman.Server.Data
             return _repo.GetAllAsync();
         }
 
-        public Task<IAccount> GetByIdAsync(int id)
+        public Task<IAccount> GetByIdAsync(string email)
         {
-            throw new NotImplementedException();
+            _logger.LogInformation("account fetched");
+            return _repo.GetByIdAsync(email);
         }
 
         public Task<int> UpdateAsync(IAccount entity)
