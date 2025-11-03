@@ -37,7 +37,12 @@ namespace Nkolex.Propman.Server.Services
             }
 
             users = await GetUsersAsync();
-            var userFromList = users.FirstOrDefault(u => u.Email.Equals(user.Email, StringComparison.OrdinalIgnoreCase));
+            var userFromList = users.FirstOrDefault(u => u.Email.Equals(user.Email, StringComparison.OrdinalIgnoreCase) && u.PasswordHash.Equals(user.PasswordHash));
+            if (userFromList == null)
+            {
+                _logger.LogInformation("User is not authorised.");
+                throw new UnauthorizedAccessException();
+            }
             return userFromList;
         }
         public async Task<List<User>> GetUsersAsync()

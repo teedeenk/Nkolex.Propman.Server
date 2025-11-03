@@ -49,7 +49,7 @@ namespace Nkolex.Propman.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error! during login");
-                return StatusCode(500, new {message = "An error occured during login"});
+                return StatusCode(401, new {message = "login failed."});
             }
         }
 

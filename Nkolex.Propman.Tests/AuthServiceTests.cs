@@ -64,6 +64,25 @@ namespace Nkolex.Propman.Tests
             // Assert
             Assert.NotNull(result);
             Assert.Equal(user.Email, result.Email);
+            Assert.Equal(user.PasswordHash, result.PasswordHash);
+        }
+
+        [Fact]
+        public async Task Given_Wrong_Password_ValidateUserAsync_Should_Return_UnAuthorised()
+        {
+            var user = CreateUser();
+            _accountDataService = Substitute.For<IAccountDataService>();
+            _accountDataService.GetAllAsync().Returns(CreateAccountList());
+
+            var logger = Substitute.For<ILogger<AuthService>>();
+            var configuration = Substitute.For<Microsoft.Extensions.Configuration.IConfiguration>();
+
+            var users = new List<User>();
+            var authService = new AuthService(logger, _accountDataService, configuration);
+            user.PasswordHash = "PasswordChanged";
+
+            // Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _authService.ValidateUserAsync(user, users));
         }
 
         [Fact]
