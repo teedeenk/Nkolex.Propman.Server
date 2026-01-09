@@ -1,6 +1,7 @@
 using Microsoft.IdentityModel.Tokens;
 using Nkolex.Propman.Server.Abstractions;
 using Nkolex.Propman.Server.Models;
+using Nkolex.Propman.Server.Models.DTOs;
 using System.IdentityModel.Tokens.Jwt;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices;
@@ -12,10 +13,10 @@ namespace Nkolex.Propman.Server.Services
     public class AuthService : IAuthService
     {
         private readonly ILogger<AuthService> _logger;
-        private readonly IAccountDataService? _accountDataService;
+        private readonly IAccountDataService<IAccount>? _accountDataService;
         private readonly IConfiguration _configuration;
 
-        public AuthService(ILogger<AuthService> logger, IAccountDataService accountDataService, IConfiguration configuration)
+        public AuthService(ILogger<AuthService> logger, IAccountDataService<IAccount> accountDataService, IConfiguration configuration)
         {
             _logger = logger;
             _accountDataService = accountDataService ?? throw new ArgumentNullException(nameof(accountDataService));
@@ -49,7 +50,7 @@ namespace Nkolex.Propman.Server.Services
         {
             if(_accountDataService is null )
             {
-                _logger.LogWarning("{IAccountDataService} doesn't exist...", nameof(IAccountDataService));
+                _logger.LogWarning("{IAccountDataService} doesn't exist...", nameof(IAccountDataService<IAccount>));
                 return [];
             }
             var usersFromStore = await _accountDataService.GetAllAsync();
@@ -73,7 +74,6 @@ namespace Nkolex.Propman.Server.Services
             }
             return users;
         }
-
         public async Task<string> GenerateJwtAsync(User user)
         {
             if (user is null)
@@ -126,17 +126,27 @@ namespace Nkolex.Propman.Server.Services
         {
             if (_accountDataService is null)
             {
-                _logger.LogWarning("{IAccountDataService} doesn't exist...", nameof(IAccountDataService));
+                _logger.LogWarning("{IAccountDataService} doesn't exist...", nameof(IAccountDataService<IAccount>));
                 throw new ArgumentNullException(nameof(email));
             }
-            var account = await _accountDataService.GetByIdAsync(email);
-            var user = new User
+            var allusers = await _accountDataService.GetAllAsync();
+            if (allusers.Count > 0)
             {
-                Email = account.Email,
-                FullName = $"{account.Name} {account.Surname}",
-                PasswordHash = account.Password
-            };
-            return user;
+                foreach (var account in allusers)
+                {
+                    if (account.Email.Equals(email))
+                    {
+                        var user = new User
+                        {
+                            Email = account.Email,
+                            FullName = $"{account.Name} {account.Surname}",
+                            PasswordHash = account.Password
+                        };
+                        return user;
+                    }
+                }
+            }
+            throw new KeyNotFoundException($"User with email '{email}' not found.");
         }
     }
 }

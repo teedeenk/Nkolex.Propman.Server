@@ -3,8 +3,9 @@ using Nkolex.Propman.Server.Models.DTOs;
 
 namespace Nkolex.Propman.Server.Data
 {
-    public class DataStore : IDataStore
+    public class DataStore<T> : IDataStore<T>
     {
-        public List<Account> AccountTable { get; set; } = [];
+        public string TableName { get; set; } = string.Empty;
+        public List<T> Data { get; set; } = [];
     }
 }

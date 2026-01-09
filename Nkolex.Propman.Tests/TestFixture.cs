@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.VisualStudio.TestPlatform.PlatformAbstractions.Interfaces;
 using Nkolex.Propman.Server;
 using Nkolex.Propman.Server.Abstractions;
 using Nkolex.Propman.Server.Data;
@@ -27,8 +28,11 @@ namespace Nkolex.Propman.Tests
             serviceCollection.AddTransient<ICreateAccountResponse, CreateAccountResponse>();
             var mockAccountRepository = Substitute.For<IRepository<IAccount>>();
             serviceCollection.AddScoped(_ => mockAccountRepository);
-            serviceCollection.AddTransient<IAccountDataService, AccountDataService>();
+            serviceCollection.AddTransient<IAccountDataService<IAccount>, AccountDataService<IAccount>>();
             serviceCollection.AddTransient<IAuthService, AuthService>();
+            serviceCollection.AddTransient<IUploadCsvDataService<Statement, StatementLine>, UploadCsvDataService>();
+            serviceCollection.AddScoped<IProcessCsvFileService,  ProcessCsvFileService>();
+            serviceCollection.AddTransient<IStatement, Statement>();
 
             var serviceProvider = serviceCollection.BuildServiceProvider();
             TestScope = serviceProvider.CreateScope();

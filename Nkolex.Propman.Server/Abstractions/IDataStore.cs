@@ -2,8 +2,9 @@
 
 namespace Nkolex.Propman.Server.Abstractions
 {
-    public interface IDataStore
+    public interface IDataStore<T>
     {
-        List<Account> AccountTable { get; set; }
+        string TableName { get; set; }
+        List<T> Data { get; set; }
     }
 }

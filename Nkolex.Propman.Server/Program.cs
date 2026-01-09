@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using Nkolex.Propman.Server.Abstractions;
 using Nkolex.Propman.Server.Data;
 using Nkolex.Propman.Server.Data.ConnectionOptions;
+using Nkolex.Propman.Server.Data.DataBaseConfig;
 using Nkolex.Propman.Server.Data.Repositories;
 using Nkolex.Propman.Server.Models;
 using Nkolex.Propman.Server.Models.DTOs;
@@ -20,15 +21,26 @@ namespace Nkolex.Propman.Server
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
             builder.Services.AddTransient<ICreateAccountRequest, CreateAccountRequest>();
             builder.Services.AddTransient<ICreateAccountResponse, CreateAccountResponse>();
             builder.Services.AddTransient<IAccountService, AccountService>();
             builder.Services.AddTransient<IAccount, Account>();
-            builder.Services.AddTransient<IRepository<IAccount>, FlatFileRepository>();
-            builder.Services.AddTransient<IAccountDataService, AccountDataService>();
+            builder.Services.AddScoped(typeof(IRepository<>), typeof(FlatFileRepository<>));
+            builder.Services.AddTransient<IAccountDataService<IAccount>, AccountDataService<IAccount>>();
             builder.Services.AddSingleton<IAuthService, AuthService>();
-            builder.Services.AddSingleton<IDataStore, DataStore>();
+            builder.Services.AddSingleton(typeof(IDataStore<>), typeof(DataStore<>));
+            builder.Services.AddTransient<IStatement, Statement>();
+            builder.Services.AddTransient<IUploadCsvDataService<Statement, StatementLine>, UploadCsvDataService>();
+            builder.Services.AddTransient<IUploadCsvService, UploadCsvService>();
+            builder.Services.AddScoped<IProcessCsvFileService, ProcessCsvFileService>();
+            builder.Services.AddMemoryCache();
+            builder.Services.AddSingleton<Func<Type, Type?>>(sp =>
+                t =>
+                {
+                    var impl = sp.GetService(t);
+                    return impl?.GetType();
+                }
+            );
 
             var repoSection = builder.Configuration.GetSection("RepositoryOptions");
             builder.Services.Configure<FlatFileOptions>(repoSection.GetSection("FlatFile"));
@@ -38,12 +50,14 @@ namespace Nkolex.Propman.Server
             {
                 builder.Services.AddSingleton<IRepositoryOptions>(sp =>
                     sp.GetRequiredService<IOptions<FlatFileOptions>>().Value);
-                builder.Services.AddSingleton<IRepository<IAccount>, FlatFileRepository>();
+                builder.Services.AddSingleton(typeof(IRepository<>),typeof(FlatFileRepository<>));
             }
             else
             {
                 throw new InvalidOperationException("Unsupported repository type");
             }
+            builder.Services.Configure<Tables>(builder.Configuration.GetSection("Tables"));
+            builder.Services.AddSingleton<ITables>(sp => sp.GetRequiredService<IOptions<Tables>>().Value);
 
             builder.Services.AddControllers();
 

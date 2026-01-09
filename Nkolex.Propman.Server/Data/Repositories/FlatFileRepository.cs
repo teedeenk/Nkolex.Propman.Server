@@ -1,22 +1,30 @@
-﻿using Microsoft.Extensions.Options;
-using Nkolex.Propman.Server.Abstractions;
+﻿using Nkolex.Propman.Server.Abstractions;
 using Nkolex.Propman.Server.Data.ConnectionOptions;
-using Nkolex.Propman.Server.Models.DTOs;
-using System.Diagnostics.CodeAnalysis;
+using System.Collections;
+using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Nkolex.Propman.Server.Data.Repositories
 {
-    public class FlatFileRepository : IRepository<IAccount>
+    public class FlatFileRepository<T> : IRepository<T>
     {
         private readonly FlatFileOptions _options;
         private readonly string _filePath;
         private readonly SemaphoreSlim _semaphore;
         private readonly JsonSerializerOptions _jsonOptions;
-        private readonly ILogger<FlatFileRepository> _logger;
-        private IDataStore _dataStore;
+        private readonly ILogger<FlatFileRepository<T>> _logger;
+        private readonly IDataStore<T> _dataStore;
+        private readonly ITables _tables;
+        private readonly Func<Type, Type?> _concreteTypeResolver;
 
-        public FlatFileRepository(IRepositoryOptions options, IHostEnvironment env, ILogger<FlatFileRepository> logger, IDataStore dataStore)
+        public FlatFileRepository(
+            IRepositoryOptions options,
+            IHostEnvironment env,
+            ILogger<FlatFileRepository<T>> logger,
+            IDataStore<T> dataStore,
+            ITables tables,
+            Func<Type, Type?>? concreteTypeResolver = null)
         {
             _logger = logger;
 
@@ -44,10 +52,13 @@ namespace Nkolex.Propman.Server.Data.Repositories
             }
 
             _dataStore = dataStore;
+            _tables = tables;
+            _concreteTypeResolver = concreteTypeResolver ?? FindConcreteImplementationForInterface;
         }
-        public async Task<int> AddAsync(IAccount entity)
+
+        public async Task<int> AddAsync(T entity)
         {
-            if (entity.Id == Guid.Empty)
+            if (entity == null)
             {
                 throw new ArgumentException("Entity must have a valid ID before being saved to repository.", nameof(entity));
             }
@@ -55,65 +66,127 @@ namespace Nkolex.Propman.Server.Data.Repositories
             await _semaphore.WaitAsync();
             try
             {
-                var accounts = await GetAllAccountsFromFileAsync();
+                var tableName = _tables.ResolveNameFor(typeof(T));
+                var tIsInterface = typeof(T).IsInterface;
 
-                if (accounts.Any(a => a.Id == entity.Id || a.Email == entity.Email))
+                JsonObject rootObj;
+                if (!File.Exists(_filePath))
                 {
-                    throw new InvalidOperationException($"Account: {entity.Email} already exists.");
+                    rootObj = [];
+                }
+                else
+                {
+                    var fileText = await File.ReadAllTextAsync(_filePath);
+                    if (string.IsNullOrWhiteSpace(fileText))
+                    {
+                        rootObj = [];
+                    }
+                    else
+                    {
+                        try
+                        {
+                            var parsed = JsonNode.Parse(fileText);
+                            rootObj = parsed as JsonObject ?? [];
+                        }
+                        catch (JsonException)
+                        {
+                            _logger.LogWarning("Flat file JSON invalid; recreating store for table {Table}.", tableName);
+                            rootObj = [];
+                        }
+                    }
                 }
 
-                accounts.Add(entity);
-                await WriteAccountsToFileAsync(accounts);
+                List<T> existingListForTable = [];
+                if (rootObj.TryGetPropertyValue(tableName, out var existingNode) && existingNode != null)
+                {
+                    var arrayText = existingNode.ToJsonString();
+                    existingListForTable = DeserializeListFromJsonArray(arrayText, _jsonOptions, tIsInterface, _concreteTypeResolver);
+                }
+
+                var merged = false;
+                if (existingListForTable.Count > 0)
+                {
+                    merged = TryMergeCollectionPropertyIntoExisting(existingListForTable, entity);
+                }
+
+                if (!merged)
+                {
+                    existingListForTable.Add(entity);
+                }
+
+                _dataStore.TableName = tableName;
+                _dataStore.Data = existingListForTable;
+
+                rootObj[tableName] = JsonSerializer.SerializeToNode(existingListForTable, _jsonOptions);
+
+                await File.WriteAllTextAsync(_filePath, rootObj.ToJsonString(options: _jsonOptions));
 
                 return 1;
             }
+            catch (JsonException jsEx)
+            {
+                _logger.LogError(jsEx, "Couldn't add to file.");
+                throw;
+            }
             finally
             {
                 _semaphore.Release();
             }
         }
 
-        public Task<int> DeleteAsync(IAccount entity)
+        private static List<T> DeserializeListFromJsonArray(string arrayJson, JsonSerializerOptions options, bool typeIsInterface, Func<Type, Type?> findImpl)
         {
-            throw new NotImplementedException();
-        }
+            if (string.IsNullOrWhiteSpace(arrayJson)) return new List<T>();
 
-        public async Task<List<IAccount>> GetAllAsync()
-        {
-            try
-            { 
-                await _semaphore.WaitAsync();
-                var accounts = await GetAllAccountsFromFileAsync();
-                return accounts;
-            }
-            catch (Exception ex)
+            if (!typeIsInterface)
             {
-                _logger.LogInformation("There are no accounts {ex}", ex);
+                try
+                {
+                    return JsonSerializer.Deserialize<List<T>>(arrayJson, options) ?? new List<T>();
+                }
+                catch
+                {
+                    return [];
+                }
+            }
+
+            var impl = findImpl(typeof(T));
+            if (impl == null) return [];
+
+            try
+            {
+                var listOfImplType = typeof(List<>).MakeGenericType(impl);
+                var deserialized = JsonSerializer.Deserialize(arrayJson, listOfImplType, options);
+                var result = new List<T>();
+                if (deserialized is IEnumerable kv)
+                {
+                    foreach (var item in kv)
+                    {
+                        result.Add((T)item);
+                    }
+                }
+                return result;
+            }
+            catch
+            {
                 return [];
             }
-            finally 
-            { 
-                _semaphore.Release(); 
-            }
         }
 
-        public async Task<IAccount> GetByIdAsync(string email)
+        public Task<int> DeleteAsync(T entity) => throw new NotImplementedException();
+
+        public async Task<List<T>> GetAllAsync()
         {
             try
             {
                 await _semaphore.WaitAsync();
-                var accounts = await GetAllAccountsFromFileAsync();
-                var account = accounts.Where(x => x.Email == email).FirstOrDefault();
-                if (account == null)
-                {
-                    return new Account();
-                }
-                return account;
+                var items = await GetAllFromFileAsync();
+                return items;
             }
             catch (Exception ex)
             {
-                _logger.LogInformation("No account found: {ex}", ex.Message);
-                return new Account();
+                _logger.LogInformation(ex, "There are no records");
+                return [];
             }
             finally
             {
@@ -121,12 +194,9 @@ namespace Nkolex.Propman.Server.Data.Repositories
             }
         }
 
-        public Task<int> UpdateAsync(IAccount entity)
-        {
-            throw new NotImplementedException();
-        }
+        public Task<int> UpdateAsync(T entity) => throw new NotImplementedException();
 
-        private async Task<List<IAccount>> GetAllAccountsFromFileAsync()
+        private async Task<List<T>> GetAllFromFileAsync()
         {
             if (!File.Exists(_filePath))
             {
@@ -135,27 +205,122 @@ namespace Nkolex.Propman.Server.Data.Repositories
 
             try
             {
-                var json = await File.ReadAllTextAsync(_filePath);
-                if (string.IsNullOrWhiteSpace(json))
+                var fileText = await File.ReadAllTextAsync(_filePath);
+                if (string.IsNullOrWhiteSpace(fileText))
                 {
                     return [];
                 }
 
-                var accounts = JsonSerializer.Deserialize<DataStore>(json, _jsonOptions);
-                return accounts?.AccountTable.Cast<IAccount>().ToList() ?? [];
+                JsonObject rootObj;
+                try
+                {
+                    var parsed = JsonNode.Parse(fileText);
+                    rootObj = parsed as JsonObject ?? [];
+                }
+                catch (JsonException)
+                {
+                    _logger.LogWarning("Flat file JSON invalid; returning empty list.");
+                    return [];
+                }
+
+                var tableName = _tables.ResolveNameFor(typeof(T));
+                if (!rootObj.TryGetPropertyValue(tableName, out var node) || node == null)
+                {
+                    return [];
+                }
+
+                var arrayText = node.ToJsonString();
+                var list = DeserializeListFromJsonArray(arrayText, _jsonOptions, typeof(T).IsInterface, _concreteTypeResolver);
+                return list ?? [];
             }
             catch (JsonException js)
             {
-                _logger.LogError("Error: {js.Message}", js.Message);
+                _logger.LogError("Error reading flat file: {js.Message}", js.Message);
                 return [];
             }
         }
 
-        private async Task WriteAccountsToFileAsync(List<IAccount> accounts)
+        private static Type? FindConcreteImplementationForInterface(Type interfaceType)
         {
-            _dataStore.AccountTable = [.. accounts.Cast<Account>()];
-            var json = JsonSerializer.Serialize(_dataStore, _jsonOptions);
-            await File.WriteAllTextAsync(_filePath, json);
+            try
+            {
+                var candidates = AppDomain.CurrentDomain.GetAssemblies()
+                    .Where(a => !a.IsDynamic)
+                    .SelectMany(a =>
+                    {
+                        try { return a.GetTypes(); } catch { return Array.Empty<Type>(); }
+                    })
+                    .Where(t => interfaceType.IsAssignableFrom(t) && t.IsClass && !t.IsAbstract && t.GetConstructor(Type.EmptyTypes) != null)
+                    .ToArray();
+
+                return candidates.FirstOrDefault();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static bool TryMergeCollectionPropertyIntoExisting(List<T> existingList, T incoming)
+        {
+            if (incoming == null) return false;
+            if (existingList == null) return false;
+            if (existingList.Count == 0) return false; 
+
+            var collectionProp = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(p =>
+                    p.CanRead && p.CanWrite &&
+                    p.PropertyType != typeof(string) &&
+                    p.PropertyType.GetInterfaces().Any(i =>
+                        i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>)));
+
+            if (collectionProp == null) return false;
+
+            var existingTarget = existingList[0];
+            var existingCollectionObj = collectionProp.GetValue(existingTarget);
+            if (collectionProp.GetValue(incoming) is not IEnumerable incomingCollectionObj) return false;
+
+            var enumInterface = collectionProp.PropertyType.GetInterfaces()
+                .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+            if (enumInterface == null) return false;
+            var itemType = enumInterface.GetGenericArguments()[0];
+
+            if (existingCollectionObj == null)
+            {
+                var listType = typeof(List<>).MakeGenericType(itemType);
+                var newList = (IList)Activator.CreateInstance(listType)!;
+                foreach (var it in incomingCollectionObj)
+                {
+                    newList.Add(it);
+                }
+                collectionProp.SetValue(existingTarget, newList);
+                return true;
+            }
+
+            if (existingCollectionObj is IList existingIList)
+            {
+                foreach (var it in incomingCollectionObj)
+                {
+                    existingIList.Add(it);
+                }
+                return true;
+            }
+
+            var newListType = typeof(List<>).MakeGenericType(itemType);
+            var newListInstance = (IList)Activator.CreateInstance(newListType)!;
+
+            foreach (var ex in (existingCollectionObj as IEnumerable) ?? Enumerable.Empty<object>())
+            {
+                newListInstance.Add(ex);
+            }
+
+            foreach (var inc in incomingCollectionObj)
+            {
+                newListInstance.Add(inc);
+            }
+
+            collectionProp.SetValue(existingTarget, newListInstance);
+            return true;
         }
     }
 }

@@ -35,7 +35,7 @@ namespace Nkolex.Propman.Server.Services
             IAccount entity = RequestToAccount(createAccountRequest);
             using (var scope = _serviceProvider.CreateScope())
             {
-                var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService>();
+                var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
                 await dataService.AddAsync(entity);
             }
 
@@ -47,7 +47,6 @@ namespace Nkolex.Propman.Server.Services
             };
             return response;
         }
-
         private static IAccount RequestToAccount(ICreateAccountRequest createAccountRequest)
         {
             IAccount account = new Account

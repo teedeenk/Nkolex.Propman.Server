@@ -14,15 +14,17 @@ using NSubstitute.Extensions;
 
 namespace Nkolex.Propman.Tests
 {
+    [Collection("One at the time fellows")]
+
     public class AuthServiceTests : TestFixture
     {
         private readonly IAuthService _authService;
-        private IAccountDataService _accountDataService;
+        private IAccountDataService<IAccount> _accountDataService;
 
         public AuthServiceTests() : base(new TestWebApplicationFactory<Program>())
         {
             _authService = Factory.Services.GetRequiredService<IAuthService>();
-            _accountDataService = Factory.Services.GetRequiredService<IAccountDataService>();
+            _accountDataService = Factory.Services.GetRequiredService<IAccountDataService<IAccount>>();
         }
 
         [Fact]
@@ -50,7 +52,7 @@ namespace Nkolex.Propman.Tests
             // Arrange
             var user = CreateUser();
 
-            _accountDataService = Substitute.For<IAccountDataService>();
+            _accountDataService = Substitute.For<IAccountDataService<IAccount>>();
             _accountDataService.GetAllAsync().Returns(CreateAccountList());
 
             var logger = Substitute.For<ILogger<AuthService>>();
@@ -71,7 +73,7 @@ namespace Nkolex.Propman.Tests
         public async Task Given_Wrong_Password_ValidateUserAsync_Should_Return_UnAuthorised()
         {
             var user = CreateUser();
-            _accountDataService = Substitute.For<IAccountDataService>();
+            _accountDataService = Substitute.For<IAccountDataService<IAccount>>();
             _accountDataService.GetAllAsync().Returns(CreateAccountList());
 
             var logger = Substitute.For<ILogger<AuthService>>();
@@ -118,14 +120,16 @@ namespace Nkolex.Propman.Tests
             var configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(FakeJwtConfig())
                 .Build();
-            var accountDataService = Substitute.For<IAccountDataService>();
-            accountDataService.GetByIdAsync(user.Email).Returns(new Account
-            {
-                Email = user.Email,
-                Name = "Joe",
-                Surname = "Dohn",
-                Password = "Password123!"
-            });
+            var accountDataService = Substitute.For<IAccountDataService<IAccount>>();
+            accountDataService.GetAllAsync()
+                .Returns([new Account
+                {
+                    Email = user.Email,
+                    Name = "Joe",
+                    Surname = "Dohn",
+                    Password = "Password123!"
+                }]);
+
 
             var authService = new AuthService(logger, accountDataService, configuration);
             var sud = await authService.GetUserByIdAsync(user.Email);

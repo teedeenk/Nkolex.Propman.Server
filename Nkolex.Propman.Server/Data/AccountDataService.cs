@@ -1,20 +1,22 @@
-﻿using Nkolex.Propman.Server.Abstractions;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Nkolex.Propman.Server.Abstractions;
+using Nkolex.Propman.Server.Models.DTOs;
 
 namespace Nkolex.Propman.Server.Data
 {
-    public class AccountDataService : IAccountDataService
+    public class AccountDataService<Account> : IAccountDataService<IAccount>
     {
         private readonly IServiceProvider _serviceProvider;
-        private readonly ILogger<AccountDataService> _logger;
+        private readonly ILogger<AccountDataService<IAccount>> _logger;
         private readonly IRepository<IAccount> _repo;
 
-        public AccountDataService(IServiceProvider serviceProvider, ILogger<AccountDataService> logger, IRepository<IAccount> repo)
+        public AccountDataService(IServiceProvider serviceProvider, ILogger<AccountDataService<IAccount>> logger, IRepository<IAccount> repo)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _logger = logger;
             _repo = repo;
         }
-        public Task<int> AddAsync(IAccount entity)
+        public async Task<int> AddAsync(IAccount entity)
         {
             if (entity == null)
             {
@@ -24,9 +26,22 @@ namespace Nkolex.Propman.Server.Data
             {
                 throw new ArgumentException("Account entity must have a valid ID before being saved to repository.", nameof(entity));
             }
-            _repo.AddAsync(entity);
-            _logger.LogInformation("Account added");
-            return Task.FromResult(1);
+            try
+            {
+                var accounts = await GetAllAsync();
+                if (accounts.Any(a => a.Id == entity.Id || a.Email == entity.Email))
+                {
+                    throw new InvalidOperationException($"Account: {entity.Email} already exists.");
+                }
+                await _repo.AddAsync(entity);
+                _logger.LogInformation("Account added");
+                return 1;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("The following error occured: {ex}", ex.Message);
+                return 0;
+            }
         }
 
         public Task<int> DeleteAsync(IAccount entity)
@@ -34,16 +49,29 @@ namespace Nkolex.Propman.Server.Data
             throw new NotImplementedException();
         }
 
-        public Task<List<IAccount>> GetAllAsync()
+        public async Task<List<IAccount>> GetAllAsync()
         {
             _logger.LogInformation("Accounts fetched");
-            return _repo.GetAllAsync();
+            return await _repo.GetAllAsync();
         }
 
-        public Task<IAccount> GetByIdAsync(string email)
+        public async Task<IAccount> GetByIdAsync(IAccount account)
         {
-            _logger.LogInformation("account fetched");
-            return _repo.GetByIdAsync(email);
+            try
+            {
+                var accounts = await GetAllAsync();
+                var accountById = accounts.Where(x => x.Email == account.Email).FirstOrDefault();
+                if (accountById == null)
+                {
+                    return _serviceProvider.GetRequiredService<IAccount>();
+                }
+                _logger.LogInformation("account fetched");
+                return accountById;
+            }
+            catch
+            {
+                return _serviceProvider.GetRequiredService<IAccount>();
+            }
         }
 
         public Task<int> UpdateAsync(IAccount entity)
