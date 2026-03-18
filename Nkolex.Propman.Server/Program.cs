@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Nkolex.Propman.Server.Abstractions;
+using Nkolex.Propman.Server.Constants;
 using Nkolex.Propman.Server.Data;
 using Nkolex.Propman.Server.Data.ConnectionOptions;
 using Nkolex.Propman.Server.Data.DataBaseConfig;
@@ -33,6 +34,9 @@ namespace Nkolex.Propman.Server
             builder.Services.AddTransient<IUploadCsvDataService<Statement, StatementLine>, UploadCsvDataService>();
             builder.Services.AddTransient<IUploadCsvService, UploadCsvService>();
             builder.Services.AddScoped<IProcessCsvFileService, ProcessCsvFileService>();
+            builder.Services.AddTransient<IProperty, Property>();
+            builder.Services.AddTransient<IPropertyService, PropertyService>();
+            builder.Services.AddTransient<IPropertyDataService<IProperty>, PropertyDataService<IProperty>>();
             builder.Services.AddMemoryCache();
             builder.Services.AddSingleton<Func<Type, Type?>>(sp =>
                 t =>
@@ -41,6 +45,7 @@ namespace Nkolex.Propman.Server
                     return impl?.GetType();
                 }
             );
+            builder.Services.AddHttpContextAccessor();
 
             var repoSection = builder.Configuration.GetSection("RepositoryOptions");
             builder.Services.Configure<FlatFileOptions>(repoSection.GetSection("FlatFile"));
@@ -73,8 +78,6 @@ namespace Nkolex.Propman.Server
                 jwtKey = builder.Configuration["Jwt:Key"]!;
             }
 
-
-            //Configure JWT Authentication
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
@@ -92,9 +95,16 @@ namespace Nkolex.Propman.Server
                     };
                 });
 
-            builder.Services.AddAuthorization();
+            builder.Services.AddAuthorizationBuilder()
+                .AddPolicy("RequireAdminRole", policy => 
+                    policy.RequireRole(UserRoles.Admin))
+                .AddPolicy("RequireManagerOrAdmin", policy => 
+                    policy.RequireRole(UserRoles.Admin, UserRoles.PropertyManager))
+                .AddPolicy("CanManageProperties", policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.IsInRole(UserRoles.Admin) ||
+                        context.User.IsInRole(UserRoles.PropertyManager)));
 
-            // Add CORS policy
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowFrontendClients",
@@ -108,7 +118,6 @@ namespace Nkolex.Propman.Server
                     });
             });
 
-            // Add OpenAPI/Swagger services
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
@@ -117,10 +126,8 @@ namespace Nkolex.Propman.Server
 
             var app = builder.Build();
 
-            // Use CORS policy
             app.UseCors("AllowFrontendClients");
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -134,11 +141,8 @@ namespace Nkolex.Propman.Server
                 app.UseHttpsRedirection();
             }
 
-
             app.UseAuthorization();
-
             app.MapControllers();
-
             app.Run();
         }
     }

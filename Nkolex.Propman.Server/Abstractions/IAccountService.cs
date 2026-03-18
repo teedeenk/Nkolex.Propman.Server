@@ -3,5 +3,6 @@
     public interface IAccountService
     {
         Task<ICreateAccountResponse> AddUserAsync(ICreateAccountRequest createAccountRequest);
+        Task<bool> ApproveUser(IAccount account);
     }
 }

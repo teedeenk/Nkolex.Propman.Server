@@ -47,6 +47,31 @@ namespace Nkolex.Propman.Server.Services
             };
             return response;
         }
+
+        public async Task<bool> ApproveUser(IAccount account)
+        {
+            ArgumentNullException.ThrowIfNull(account);
+
+            if (account.Roles == null || account.Roles.Count != 0 || account.Roles.FirstOrDefault() == "Guest")
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
+                var updatedAccount = UpdateAccount(account);
+                var update = await dataService.UpdateAsync(updatedAccount);
+
+                if(update == 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        private static IAccount UpdateAccount(IAccount account)
+        {
+            account.Roles.Add("Tenant");
+            return account;
+        }
         private static IAccount RequestToAccount(ICreateAccountRequest createAccountRequest)
         {
             IAccount account = new Account

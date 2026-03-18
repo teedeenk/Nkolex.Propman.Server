@@ -74,9 +74,17 @@ namespace Nkolex.Propman.Server.Data
             }
         }
 
-        public Task<int> UpdateAsync(IAccount entity)
+        public async Task<int> UpdateAsync(IAccount entity)
         {
-            throw new NotImplementedException();
+            try
+            {
+                ArgumentNullException.ThrowIfNull(entity);
+                return await _repo.UpdateAsync(entity);
+            }
+            catch
+            {
+                throw;
+            }
         }
     }
 }

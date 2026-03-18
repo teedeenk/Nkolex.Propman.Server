@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Nkolex.Propman.Server.Abstractions;
 using Nkolex.Propman.Server.Models;
 
@@ -9,19 +10,29 @@ namespace Nkolex.Propman.Server.Services
         private readonly ILogger<UploadCsvService> _logger;
         private readonly IServiceProvider _serviceProvider;
         private readonly IUploadCsvDataService<Statement, StatementLine> _uploadCsvDataService;
+        private readonly IPropertyService _propertyService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-
-        public UploadCsvService(ILogger<UploadCsvService> logger, IServiceProvider serviceProvider, IUploadCsvDataService<Statement, StatementLine> uploadCsvDataService)
+        public UploadCsvService(
+            ILogger<UploadCsvService> logger, 
+            IServiceProvider serviceProvider, 
+            IUploadCsvDataService<Statement, StatementLine> uploadCsvDataService, 
+            IPropertyService propertyService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
             _uploadCsvDataService = uploadCsvDataService;
+            _propertyService = propertyService;
+            _httpContextAccessor = httpContextAccessor;
         }
         public async Task<int> AddAsync(IStatement statement)
         {
             ArgumentNullException.ThrowIfNull(statement);
             try
             {
+                statement.Id = Guid.NewGuid();
+
                 var validatedStatement = ValidateStatement(statement);
                 if (validatedStatement is not null)
                 {
@@ -37,7 +48,24 @@ namespace Nkolex.Propman.Server.Services
                         }
                         else
                         {
+                            var currentPropertyId = GetCurrentPropertyIdFromRequest();
+                            
+                            if (currentPropertyId == Guid.Empty)
+                            {
+                                _logger.LogWarning("No property ID found in request.");
+                                return 0;
+                            }
+
                             await _uploadCsvDataService.AddAsync(validatedStatement);
+                            
+                            var property = _serviceProvider.GetRequiredService<IProperty>();
+                            property.Id = currentPropertyId;
+                            var existingProperty = await _propertyService.GetByIdAsync(property);
+                            
+                            existingProperty.Statement = validatedStatement.Id;
+                            await _propertyService.UpdatePropertyAsync(existingProperty);
+                            
+                            _logger.LogInformation("Statement uploaded and linked to property {PropertyId}", currentPropertyId);
                             return 1;
                         }
                     }
@@ -70,9 +98,52 @@ namespace Nkolex.Propman.Server.Services
             return [];
         }
 
+        private Guid GetCurrentPropertyIdFromRequest()
+        {
+            try
+            {
+                var httpContext = _httpContextAccessor.HttpContext;
+                if (httpContext?.Request.RouteValues.TryGetValue("propertyId", out var propertyIdObj) == true)
+                {
+                    if (Guid.TryParse(propertyIdObj?.ToString(), out var propertyId))
+                    {
+                        _logger.LogInformation("Property ID from route: {PropertyId}", propertyId);
+                        return propertyId;
+                    }
+                }
+
+                if (httpContext?.Request.Query.TryGetValue("propertyId", out var queryPropertyId) == true)
+                {
+                    if (Guid.TryParse(queryPropertyId.ToString(), out var propertyId))
+                    {
+                        _logger.LogInformation("Property ID from query: {PropertyId}", propertyId);
+                        return propertyId;
+                    }
+                }
+
+                if (httpContext?.Request.Headers.TryGetValue("X-Property-Id", out var headerPropertyId) == true)
+                {
+                    if (Guid.TryParse(headerPropertyId.ToString(), out var propertyId))
+                    {
+                        _logger.LogInformation("Property ID from header: {PropertyId}", propertyId);
+                        return propertyId;
+                    }
+                }
+
+                _logger.LogWarning("No property ID found in request");
+                return Guid.Empty;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting property ID from request");
+                return Guid.Empty;
+            }
+        }
+
         private static Statement ValidateStatement(IStatement uploadFile)
         {
             var statement = new Statement();
+            statement.Id = uploadFile.Id;
             foreach (var statementLine in uploadFile.StatementLines)
             {
                 if (IsValidDate(statementLine.Date) == true && IsValidDescription(statementLine.Description) == true)

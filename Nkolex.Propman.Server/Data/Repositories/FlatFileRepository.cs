@@ -56,6 +56,81 @@ namespace Nkolex.Propman.Server.Data.Repositories
             _concreteTypeResolver = concreteTypeResolver ?? FindConcreteImplementationForInterface;
         }
 
+        public async Task<T> GetByIdAsync(T entity)
+        {
+            if (entity == null)
+            {
+                throw new ArgumentNullException(nameof(entity), "Entity cannot be null.");
+            }
+
+            await _semaphore.WaitAsync();
+            try
+            {
+                var tableName = _tables.ResolveNameFor(typeof(T));
+                var tIsInterface = typeof(T).IsInterface;
+
+                if (!File.Exists(_filePath))
+                {
+                    _logger.LogWarning("Flat file does not exist. Cannot retrieve entity from table {Table}.", tableName);
+                    throw new InvalidOperationException($"Entity not found in table {tableName}.");
+                }
+
+                var fileText = await File.ReadAllTextAsync(_filePath);
+                if (string.IsNullOrWhiteSpace(fileText))
+                {
+                    _logger.LogWarning("Flat file is empty. Cannot retrieve entity from table {Table}.", tableName);
+                    throw new InvalidOperationException($"Entity not found in table {tableName}.");
+                }
+
+                JsonObject rootObj;
+                try
+                {
+                    var parsed = JsonNode.Parse(fileText);
+                    rootObj = parsed as JsonObject ?? [];
+                }
+                catch (JsonException)
+                {
+                    _logger.LogWarning("Flat file JSON invalid; cannot retrieve entity from table {Table}.", tableName);
+                    throw new InvalidOperationException($"Entity not found in table {tableName}.");
+                }
+
+                if (!rootObj.TryGetPropertyValue(tableName, out var existingNode) || existingNode == null)
+                {
+                    _logger.LogWarning("Table {Table} not found in flat file. Cannot retrieve entity.", tableName);
+                    throw new InvalidOperationException($"Entity not found in table {tableName}.");
+                }
+
+                var arrayText = existingNode.ToJsonString();
+                var existingListForTable = DeserializeListFromJsonArray(arrayText, _jsonOptions, tIsInterface, _concreteTypeResolver);
+
+                if (existingListForTable.Count == 0)
+                {
+                    _logger.LogWarning("No entities found in table {Table}. Cannot retrieve entity.", tableName);
+                    throw new InvalidOperationException($"Entity not found in table {tableName}.");
+                }
+
+                // Find the entity by comparing using the existing equality method
+                foreach (var item in existingListForTable)
+                {
+                    if (AreEntitiesEqual(item, entity))
+                    {
+                        return item;
+                    }
+                }
+
+                _logger.LogWarning("Entity not found in table {Table}.", tableName);
+                throw new InvalidOperationException($"Entity not found in table {tableName}.");
+            }
+            catch (JsonException jsEx)
+            {
+                _logger.LogError(jsEx, "Couldn't retrieve entity from file.");
+                throw;
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
         public async Task<int> AddAsync(T entity)
         {
             if (entity == null)
@@ -103,16 +178,29 @@ namespace Nkolex.Propman.Server.Data.Repositories
                     existingListForTable = DeserializeListFromJsonArray(arrayText, _jsonOptions, tIsInterface, _concreteTypeResolver);
                 }
 
-                var merged = false;
-                if (existingListForTable.Count > 0)
+                // Check if entity already exists by ID
+                var idProperty = typeof(T).GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
+                if (idProperty != null && idProperty.CanRead && existingListForTable.Count > 0)
                 {
-                    merged = TryMergeCollectionPropertyIntoExisting(existingListForTable, entity);
+                    var incomingId = idProperty.GetValue(entity);
+                    if (incomingId != null)
+                    {
+                        var exists = existingListForTable.Any(e =>
+                        {
+                            var existingId = idProperty.GetValue(e);
+                            return existingId != null && existingId.Equals(incomingId);
+                        });
+
+                        if (exists)
+                        {
+                            _logger.LogWarning("Entity with ID {Id} already exists in table {Table}.", incomingId, tableName);
+                            return 0; // Entity already exists, don't add duplicate
+                        }
+                    }
                 }
 
-                if (!merged)
-                {
-                    existingListForTable.Add(entity);
-                }
+                // Always add the new entity to the list
+                existingListForTable.Add(entity);
 
                 _dataStore.TableName = tableName;
                 _dataStore.Data = existingListForTable;
@@ -194,7 +282,131 @@ namespace Nkolex.Propman.Server.Data.Repositories
             }
         }
 
-        public Task<int> UpdateAsync(T entity) => throw new NotImplementedException();
+        public async Task<int> UpdateAsync(T entity)
+        {
+            if (entity == null)
+            {
+                throw new ArgumentNullException(nameof(entity), "Entity cannot be null.");
+            }
+
+            await _semaphore.WaitAsync();
+            try
+            {
+                var tableName = _tables.ResolveNameFor(typeof(T));
+                var tIsInterface = typeof(T).IsInterface;
+
+                if (!File.Exists(_filePath))
+                {
+                    _logger.LogWarning("Flat file does not exist. Cannot update entity in table {Table}.", tableName);
+                    return 0;
+                }
+
+                var fileText = await File.ReadAllTextAsync(_filePath);
+                if (string.IsNullOrWhiteSpace(fileText))
+                {
+                    _logger.LogWarning("Flat file is empty. Cannot update entity in table {Table}.", tableName);
+                    return 0;
+                }
+
+                JsonObject rootObj;
+                try
+                {
+                    var parsed = JsonNode.Parse(fileText);
+                    rootObj = parsed as JsonObject ?? [];
+                }
+                catch (JsonException)
+                {
+                    _logger.LogWarning("Flat file JSON invalid; cannot update entity in table {Table}.", tableName);
+                    return 0;
+                }
+
+                if (!rootObj.TryGetPropertyValue(tableName, out var existingNode) || existingNode == null)
+                {
+                    _logger.LogWarning("Table {Table} not found in flat file. Cannot update entity.", tableName);
+                    return 0;
+                }
+
+                var arrayText = existingNode.ToJsonString();
+                var existingListForTable = DeserializeListFromJsonArray(arrayText, _jsonOptions, tIsInterface, _concreteTypeResolver);
+
+                if (existingListForTable.Count == 0)
+                {
+                    _logger.LogWarning("No entities found in table {Table}. Cannot update entity.", tableName);
+                    return 0;
+                }
+
+                // Find the entity to update by comparing all properties
+                var indexToUpdate = -1;
+                for (int i = 0; i < existingListForTable.Count; i++)
+                {
+                    if (AreEntitiesEqual(existingListForTable[i], entity))
+                    {
+                        indexToUpdate = i;
+                        break;
+                    }
+                }
+
+                if (indexToUpdate == -1)
+                {
+                    _logger.LogWarning("Entity not found in table {Table}. Cannot update.", tableName);
+                    return 0;
+                }
+
+                // Replace the entity
+                existingListForTable[indexToUpdate] = entity;
+
+                _dataStore.TableName = tableName;
+                _dataStore.Data = existingListForTable;
+
+                rootObj[tableName] = JsonSerializer.SerializeToNode(existingListForTable, _jsonOptions);
+
+                await File.WriteAllTextAsync(_filePath, rootObj.ToJsonString(options: _jsonOptions));
+
+                return 1;
+            }
+            catch (JsonException jsEx)
+            {
+                _logger.LogError(jsEx, "Couldn't update entity in file.");
+                throw;
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
+
+        private static bool AreEntitiesEqual(T entity1, T entity2)
+        {
+            if (entity1 == null && entity2 == null) return true;
+            if (entity1 == null || entity2 == null) return false;
+
+            // Try to find an Id property to compare
+            var idProperty = typeof(T).GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
+            if (idProperty != null && idProperty.CanRead)
+            {
+                var id1 = idProperty.GetValue(entity1);
+                var id2 = idProperty.GetValue(entity2);
+                if (id1 != null && id2 != null)
+                {
+                    return id1.Equals(id2);
+                }
+            }
+
+            // Fallback: compare Email property if it exists (common identifier)
+            var emailProperty = typeof(T).GetProperty("Email", BindingFlags.Public | BindingFlags.Instance);
+            if (emailProperty != null && emailProperty.CanRead)
+            {
+                var email1 = emailProperty.GetValue(entity1);
+                var email2 = emailProperty.GetValue(entity2);
+                if (email1 != null && email2 != null)
+                {
+                    return email1.Equals(email2);
+                }
+            }
+
+            // Last resort: reference equality
+            return ReferenceEquals(entity1, entity2);
+        }
 
         private async Task<List<T>> GetAllFromFileAsync()
         {
@@ -322,5 +534,6 @@ namespace Nkolex.Propman.Server.Data.Repositories
             collectionProp.SetValue(existingTarget, newListInstance);
             return true;
         }
+
     }
 }

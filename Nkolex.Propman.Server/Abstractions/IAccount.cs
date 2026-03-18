@@ -13,5 +13,7 @@
         DateTime UpdatedAt { get; set; }
         DateTime? DeletedAt { get; set; }
         bool IsDeleted { get; set; }
+        List<string> Roles { get; set; }
+        List<Guid>? Properties {  get; set; }
     }
 }

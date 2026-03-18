@@ -33,6 +33,7 @@ namespace Nkolex.Propman.Tests
             serviceCollection.AddTransient<IUploadCsvDataService<Statement, StatementLine>, UploadCsvDataService>();
             serviceCollection.AddScoped<IProcessCsvFileService,  ProcessCsvFileService>();
             serviceCollection.AddTransient<IStatement, Statement>();
+            serviceCollection.AddTransient<IProperty,Property>();
 
             var serviceProvider = serviceCollection.BuildServiceProvider();
             TestScope = serviceProvider.CreateScope();

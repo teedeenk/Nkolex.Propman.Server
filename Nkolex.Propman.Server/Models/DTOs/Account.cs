@@ -15,5 +15,7 @@ namespace Nkolex.Propman.Server.Models.DTOs
         public DateTime UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
         public bool IsDeleted { get; set; }
+        public List<string> Roles { get; set; } = [ "Guest" ];
+        public List<Guid>? Properties { get; set; }
     }
 }

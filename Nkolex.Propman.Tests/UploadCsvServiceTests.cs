@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Nkolex.Propman.Server;
 using Nkolex.Propman.Server.Abstractions;
@@ -6,6 +7,7 @@ using Nkolex.Propman.Server.Data;
 using Nkolex.Propman.Server.Models;
 using Nkolex.Propman.Server.Services;
 using NSubstitute;
+using System;
 
 namespace Nkolex.Propman.Tests
 {
@@ -68,11 +70,60 @@ namespace Nkolex.Propman.Tests
             var listOfStatement = new List<Statement>();
             var dataService = Substitute.For<IUploadCsvDataService<Statement,StatementLine>>();
             dataService.GetAllAsync().Returns(Task.FromResult(listOfStatement));
+            var propertyService = Substitute.For<IPropertyService>();
+            var httpContextaccessor = Substitute.For<IHttpContextAccessor>();
 
-            var uploadCsvService = new UploadCsvService(logger, serviceProvider, dataService);
+            var uploadCsvService = new UploadCsvService(logger, serviceProvider, dataService, propertyService, httpContextaccessor);
 
             var sud = await uploadCsvService.GetAllAsync();
             Assert.Equal([], sud);
+        }
+
+        [Fact]
+        public async Task AddAsync_Should_Update_Property_With_Statement_Id()
+        {
+            var propertyService = Factory.Services.GetRequiredService<IPropertyService>();
+            var logger = Substitute.For<ILogger<UploadCsvService>>();
+            var serviceProvider = Substitute.For<IServiceProvider>();
+            var listOfStatement = new List<Statement>();
+            var dataService = Substitute.For<IUploadCsvDataService<Statement, StatementLine>>();
+            dataService.GetAllAsync().Returns(Task.FromResult(listOfStatement));
+            var property = CreateProperty();
+
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.RouteValues["propertyId"] = property.Id.ToString();
+
+            var httpContextaccessor = Substitute.For<IHttpContextAccessor>();
+            httpContextaccessor.HttpContext.Returns(httpContext);
+
+            await propertyService.UploadPropertyAsync(property);
+            Assert.NotNull(property);
+            
+            var statement = new Statement
+            {
+                StatementLines = [new(DateTime.UtcNow, "Test Description", 100.00m)]
+            };
+
+            serviceProvider.GetService<IProperty>().Returns(property);
+            var uploadCsvService = new UploadCsvService(logger, serviceProvider, dataService, propertyService, httpContextaccessor);
+            var result = await uploadCsvService.AddAsync(statement);
+            Assert.Equal(1, result);
+            
+            var updatedProperty = await propertyService.GetByIdAsync(property);
+            Assert.NotEqual(Guid.Empty, updatedProperty.Statement);
+            Assert.Equal(statement.Id, updatedProperty.Statement);
+        }
+
+        private IProperty CreateProperty()
+        {
+            var property = Factory.Services.GetRequiredService<IProperty>();
+            property.Id = Guid.NewGuid();
+            property.Name = "Test Property";
+            property.Address = "123 Test St";
+            property.PropertyManager = "Test Manager";
+            property.Tenants = [];
+            property.Statement = Guid.Empty;
+            return property;
         }
     }
 }

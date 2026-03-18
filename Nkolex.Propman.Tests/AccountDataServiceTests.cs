@@ -65,6 +65,24 @@ namespace Nkolex.Propman.Tests
             Assert.Equal(account.Email, sud.Email);
         }
 
+        [Fact]
+
+        public async Task Given_ValidRole_Should_Be_Able_To_Update_User_Role() 
+        {
+            var account = CreateTestAccount();
+            _repo = Substitute.For<IRepository<IAccount>>();
+            _repo.UpdateAsync(account).Returns(1);
+
+            var logger = Substitute.For<ILogger<AccountDataService<IAccount>>>();
+            var serviceProvider = Substitute.For<IServiceProvider>();
+
+            var accountService = new AccountDataService<IAccount>(serviceProvider, logger, _repo);
+
+            var sud = await accountService.UpdateAsync(account);
+
+            Assert.Equal(1, sud);
+        }
+
         private IAccount CreateTestAccount()
         {
             var account = Factory.Services.GetRequiredService<IAccount>();

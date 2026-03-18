@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nkolex.Propman.Server.Abstractions;
+using Nkolex.Propman.Server.Constants;
 using Nkolex.Propman.Server.Models;
+using Nkolex.Propman.Server.Models.DTOs;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace Nkolex.Propman.Server.Controllers
 {
@@ -19,6 +22,7 @@ namespace Nkolex.Propman.Server.Controllers
             _authService = authService;
         }
 
+        [Authorize(Roles = $"{UserRoles.Admin}, {UserRoles.PropertyManager}, {UserRoles.Tenant}")]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
@@ -53,7 +57,7 @@ namespace Nkolex.Propman.Server.Controllers
             }
         }
 
-        [Authorize]
+        [Authorize(Roles = $"{UserRoles.Admin}, {UserRoles.PropertyManager}")]
         [HttpGet("profile")]
         public IActionResult GetProfile()
         {

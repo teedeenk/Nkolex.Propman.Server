@@ -1,6 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Nkolex.Propman.Server;
 using Nkolex.Propman.Server.Abstractions;
+using Nkolex.Propman.Server.Data;
+using Nkolex.Propman.Server.Services;
+using NSubstitute;
+using NuGet.Frameworks;
 
 namespace Nkolex.Propman.Tests
 {
@@ -8,10 +13,13 @@ namespace Nkolex.Propman.Tests
     public class AccountServiceTests : TestFixture
     {
         private readonly IAccountService? _accountService;
+        private IAccountDataService<IAccount> _accountDataService;
+
 
         public AccountServiceTests() : base (new TestWebApplicationFactory<Program>())
         {
             _accountService = Factory.Services.GetRequiredService<IAccountService>();
+            _accountDataService = Factory.Services.GetRequiredService<IAccountDataService<IAccount>>();
         }
 
         [Fact]
@@ -38,6 +46,40 @@ namespace Nkolex.Propman.Tests
                 throw new InvalidOperationException("AccountService is not registered in the service collection.");
             }
             await Assert.ThrowsAsync<ArgumentNullException>(() => _accountService.AddUserAsync(createAccountRequest));
+        }
+
+        [Fact]
+        public async Task Given_ValidRole_Should_Be_Able_to_Uprove_Users()
+        {
+            var account = CreateAccount();
+            var sud = await _accountService!.ApproveUser(account);
+            Assert.True(sud);
+        }
+
+        private IAccount CreateAccountFromDataService()
+        {
+            var account = Factory.Services.GetRequiredService<IAccount>();
+            account.Name = "John";
+            account.Surname = "Doe";
+            account.PhoneNumber = "1234567890";
+            account.Email = "john.doe@example.com";
+            account.Password = "TestPassword123!";
+            account.AgreeToTerms = true;
+            account.Roles = ["Tenant"];
+            return account;
+        }
+
+        private IAccount CreateAccount()
+        {
+            var account = Factory.Services.GetRequiredService<IAccount>();
+            account.Name = "John";
+            account.Surname = "Doe";
+            account.PhoneNumber = "1234567890";
+            account.Email = "john.doe@example.com";
+            account.Password = "TestPassword123!";
+            account.AgreeToTerms = true;
+            account.Roles = ["Guest"];
+            return account;
         }
         private ICreateAccountRequest CreateTestAccountRequest()
         {
