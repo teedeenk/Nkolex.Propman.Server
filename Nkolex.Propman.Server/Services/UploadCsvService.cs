@@ -48,24 +48,33 @@ namespace Nkolex.Propman.Server.Services
                         }
                         else
                         {
-                            var currentPropertyId = GetCurrentPropertyIdFromRequest();
-                            
-                            if (currentPropertyId == Guid.Empty)
-                            {
-                                _logger.LogWarning("No property ID found in request.");
-                                return 0;
-                            }
-
                             await _uploadCsvDataService.AddAsync(validatedStatement);
                             
-                            var property = _serviceProvider.GetRequiredService<IProperty>();
-                            property.Id = currentPropertyId;
-                            var existingProperty = await _propertyService.GetByIdAsync(property);
+                            var currentPropertyId = GetCurrentPropertyIdFromRequest();
                             
-                            existingProperty.Statement = validatedStatement.Id;
-                            await _propertyService.UpdatePropertyAsync(existingProperty);
+                            if (currentPropertyId != Guid.Empty)
+                            {
+                                try
+                                {
+                                    var property = _serviceProvider.GetRequiredService<IProperty>();
+                                    property.Id = currentPropertyId;
+                                    var existingProperty = await _propertyService.GetByIdAsync(property);
+                                    
+                                    existingProperty.Statement = validatedStatement.Id;
+                                    await _propertyService.UpdatePropertyAsync(existingProperty);
+                                    
+                                    _logger.LogInformation("Statement uploaded and linked to property {PropertyId}", currentPropertyId);
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogWarning(ex, "Statement added but failed to link to property {PropertyId}", currentPropertyId);
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogInformation("Statement uploaded without property link (no property ID in request)");
+                            }
                             
-                            _logger.LogInformation("Statement uploaded and linked to property {PropertyId}", currentPropertyId);
                             return 1;
                         }
                     }

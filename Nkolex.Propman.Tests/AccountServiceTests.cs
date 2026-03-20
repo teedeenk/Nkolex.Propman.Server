@@ -52,26 +52,15 @@ namespace Nkolex.Propman.Tests
         public async Task Given_ValidRole_Should_Be_Able_to_Uprove_Users()
         {
             var account = CreateAccount();
+            await _accountDataService.AddAsync(account);
             var sud = await _accountService!.ApproveUser(account);
             Assert.True(sud);
-        }
-
-        private IAccount CreateAccountFromDataService()
-        {
-            var account = Factory.Services.GetRequiredService<IAccount>();
-            account.Name = "John";
-            account.Surname = "Doe";
-            account.PhoneNumber = "1234567890";
-            account.Email = "john.doe@example.com";
-            account.Password = "TestPassword123!";
-            account.AgreeToTerms = true;
-            account.Roles = ["Tenant"];
-            return account;
         }
 
         private IAccount CreateAccount()
         {
             var account = Factory.Services.GetRequiredService<IAccount>();
+            account.Id = Guid.NewGuid();
             account.Name = "John";
             account.Surname = "Doe";
             account.PhoneNumber = "1234567890";
