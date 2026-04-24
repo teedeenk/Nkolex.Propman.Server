@@ -13,16 +13,27 @@ namespace Nkolex.Propman.Tests
         {
             builder.ConfigureServices(services =>
             {
-                services.RemoveAll(typeof(IRepository<>));
-                
-                services.AddSingleton<IRepository<IAccount>>(sp => 
+                var repositoryDescriptors = services
+                    .Where(d => d.ServiceType.IsGenericType &&
+                                d.ServiceType.GetGenericTypeDefinition() == typeof(IRepository<>))
+                    .ToList();
+
+                foreach (var descriptor in repositoryDescriptors)
+                {
+                    services.Remove(descriptor);
+                }
+
+                services.AddSingleton<IRepository<IAccount>>(
                     new InMemoryRepository<IAccount>(a => a.Id));
                 
-                services.AddSingleton<IRepository<IProperty>>(sp => 
+                services.AddSingleton<IRepository<IProperty>>(
                     new InMemoryRepository<IProperty>(p => p.Id));
                 
-                services.AddSingleton<IRepository<IStatement>>(sp => 
+                services.AddSingleton<IRepository<IStatement>>(
                     new InMemoryRepository<IStatement>(s => s.Id));
+                
+                services.AddSingleton<IRepository<IInvoice>>(
+                    new InMemoryRepository<IInvoice>(i => i.Id));
             });
         }
     }

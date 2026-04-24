@@ -178,7 +178,6 @@ namespace Nkolex.Propman.Server.Data.Repositories
                     existingListForTable = DeserializeListFromJsonArray(arrayText, _jsonOptions, tIsInterface, _concreteTypeResolver);
                 }
 
-                // Check if entity already exists by ID
                 var idProperty = typeof(T).GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
                 if (idProperty != null && idProperty.CanRead && existingListForTable.Count > 0)
                 {
@@ -194,12 +193,11 @@ namespace Nkolex.Propman.Server.Data.Repositories
                         if (exists)
                         {
                             _logger.LogWarning("Entity with ID {Id} already exists in table {Table}.", incomingId, tableName);
-                            return 0; // Entity already exists, don't add duplicate
+                            return 0; 
                         }
                     }
                 }
 
-                // Always add the new entity to the list
                 existingListForTable.Add(entity);
 
                 _dataStore.TableName = tableName;

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -28,7 +27,7 @@ namespace Nkolex.Propman.Server
             builder.Services.AddTransient<IAccount, Account>();
             builder.Services.AddScoped(typeof(IRepository<>), typeof(FlatFileRepository<>));
             builder.Services.AddTransient<IAccountDataService<IAccount>, AccountDataService<IAccount>>();
-            builder.Services.AddSingleton<IAuthService, AuthService>();
+            builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddSingleton(typeof(IDataStore<>), typeof(DataStore<>));
             builder.Services.AddTransient<IStatement, Statement>();
             builder.Services.AddTransient<IUploadCsvDataService<Statement, StatementLine>, UploadCsvDataService>();
@@ -37,6 +36,10 @@ namespace Nkolex.Propman.Server
             builder.Services.AddTransient<IProperty, Property>();
             builder.Services.AddTransient<IPropertyService, PropertyService>();
             builder.Services.AddTransient<IPropertyDataService<IProperty>, PropertyDataService<IProperty>>();
+            builder.Services.AddTransient<IInvoice, Invoice>();
+            builder.Services.AddTransient<IInvoiceService, InvoiceService>();
+            builder.Services.AddTransient<IInvoiceDataService<IInvoice>, InvoiceDataService>();
+            builder.Services.AddTransient<ICreateInvoiceRequest, CreateInvoiceRequest>();
             builder.Services.AddMemoryCache();
             builder.Services.AddSingleton<Func<Type, Type?>>(sp =>
                 t =>

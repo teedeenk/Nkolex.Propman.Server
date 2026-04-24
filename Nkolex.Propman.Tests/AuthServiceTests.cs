@@ -1,5 +1,4 @@
-﻿using Castle.Core.Configuration;
-using Castle.Core.Logging;
+﻿using Castle.Core.Logging;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,33 +22,28 @@ namespace Nkolex.Propman.Tests
 
         public AuthServiceTests() : base(new TestWebApplicationFactory<Program>())
         {
-            _authService = Factory.Services.GetRequiredService<IAuthService>();
+            _authService = TestScope.ServiceProvider.GetRequiredService<IAuthService>(); ;
             _accountDataService = Factory.Services.GetRequiredService<IAccountDataService<IAccount>>();
         }
 
         [Fact]
         public async Task ValidateUserAsync_Given_Null_User_Should_Throw_ArgumentNullException()
         {
-            // Arrange
             User? user = null;
-            // Act & Assert
             await Assert.ThrowsAsync<ArgumentNullException>(() => _authService.ValidateUserAsync(user!, []));
         }
 
         [Fact]
         public async Task ValidateUserAsync_Given_Null_Users_Should_Throw_ArgumentNullException()
         {
-            // Arrange
             var user = CreateUser();
             List<User>? users = null;
-            // Act & Assert
             await Assert.ThrowsAsync<ArgumentNullException>(() => _authService.ValidateUserAsync(user, users!));
         }
 
         [Fact]
         public async Task Given_Valid_User_ValidateUserAsync_Should_Get_All_Users_Find_User_By_Email()
         {
-            // Arrange
             var user = CreateUser();
 
             _accountDataService = Substitute.For<IAccountDataService<IAccount>>();
@@ -60,10 +54,8 @@ namespace Nkolex.Propman.Tests
 
             var users = new List<User>();
             var authService = new AuthService(logger,_accountDataService, configuration);
-            // Act
             var result = await authService.ValidateUserAsync(user, users);
 
-            // Assert
             Assert.NotNull(result);
             Assert.Equal(user.Email, result.Email);
             Assert.Equal(user.PasswordHash, result.PasswordHash);
@@ -83,7 +75,6 @@ namespace Nkolex.Propman.Tests
             var authService = new AuthService(logger, _accountDataService, configuration);
             user.PasswordHash = "PasswordChanged";
 
-            // Assert
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _authService.ValidateUserAsync(user, users));
         }
 
