@@ -22,7 +22,6 @@ namespace Nkolex.Propman.Server.Controllers
             _authService = authService;
         }
 
-        [Authorize(Roles = $"{UserRoles.Admin}, {UserRoles.PropertyManager}, {UserRoles.Tenant}")]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
@@ -57,9 +56,8 @@ namespace Nkolex.Propman.Server.Controllers
             }
         }
 
-        [Authorize(Roles = $"{UserRoles.Admin}, {UserRoles.PropertyManager}")]
         [HttpGet("profile")]
-        public IActionResult GetProfile()
+        public async Task<IActionResult> GetProfile()
         {
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
             if(email == null)
@@ -67,9 +65,10 @@ namespace Nkolex.Propman.Server.Controllers
                 return BadRequest();
             }
 
-            var user = _authService.GetUserByIdAsync(email);
-            var fullName = $"{user.Result.FullName}";
-            return Ok(new { fullName });
+            var user = await _authService.GetUserByIdAsync(email);
+            var fullName = user.FullName;
+            var roles = user.Roles;
+            return Ok(new { fullName, roles});
         }
 
         private static User ConvertRequestToUser(LoginRequest request)

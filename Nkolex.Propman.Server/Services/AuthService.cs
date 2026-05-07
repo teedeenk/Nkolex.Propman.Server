@@ -140,7 +140,8 @@ namespace Nkolex.Propman.Server.Services
                         {
                             Email = account.Email,
                             FullName = $"{account.Name} {account.Surname}",
-                            PasswordHash = account.Password
+                            PasswordHash = account.Password,
+                            Roles = account.Roles
                         };
                         return user;
                     }
