@@ -68,7 +68,8 @@ namespace Nkolex.Propman.Server.Controllers
             var user = await _authService.GetUserByIdAsync(email);
             var fullName = user.FullName;
             var roles = user.Roles;
-            return Ok(new { fullName, roles});
+            var userId = user.Id;
+            return Ok(new { fullName, roles, userId});
         }
 
         private static User ConvertRequestToUser(LoginRequest request)

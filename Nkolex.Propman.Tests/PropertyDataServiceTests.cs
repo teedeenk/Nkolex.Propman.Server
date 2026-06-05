@@ -51,7 +51,7 @@ namespace Nkolex.Propman.Tests
             property.Id = Guid.NewGuid();
             property.Name = "PropertyName";
             property.Address = "SomeWhereFun";
-            property.PropertyManager = "PropertyMangager";
+            property.PropertyManager = Guid.NewGuid();
             property.Tenants = [CreateAccount().Id];
             property.Statement = CreateStatement().Id;
             return property;

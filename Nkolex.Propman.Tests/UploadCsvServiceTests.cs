@@ -120,7 +120,7 @@ namespace Nkolex.Propman.Tests
             property.Id = Guid.NewGuid();
             property.Name = "Test Property";
             property.Address = "123 Test St";
-            property.PropertyManager = "Test Manager";
+            property.PropertyManager = Guid.NewGuid();
             property.Tenants = [];
             property.Statement = Guid.Empty;
             return property;

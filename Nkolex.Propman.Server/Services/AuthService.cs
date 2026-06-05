@@ -66,6 +66,7 @@ namespace Nkolex.Propman.Server.Services
             {
                 var user = new User
                 {
+                    Id = account.Id,
                     Email = account.Email,
                     PasswordHash = account.Password,
                     FullName = $"{account.Name} {account.Surname}"
