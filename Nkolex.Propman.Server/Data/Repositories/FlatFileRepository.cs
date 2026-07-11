@@ -17,6 +17,7 @@ namespace Nkolex.Propman.Server.Data.Repositories
         private readonly IDataStore<T> _dataStore;
         private readonly ITables _tables;
         private readonly Func<Type, Type?> _concreteTypeResolver;
+        private readonly IEncryptionService _encryptionService;
 
         public FlatFileRepository(
             IRepositoryOptions options,
@@ -24,9 +25,11 @@ namespace Nkolex.Propman.Server.Data.Repositories
             ILogger<FlatFileRepository<T>> logger,
             IDataStore<T> dataStore,
             ITables tables,
+            IEncryptionService encryptionService,
             Func<Type, Type?>? concreteTypeResolver = null)
         {
             _logger = logger;
+            _encryptionService = encryptionService;
 
             _options = options as FlatFileOptions
                 ?? throw new ArgumentException("Expected FlatFileOptions");
@@ -56,6 +59,31 @@ namespace Nkolex.Propman.Server.Data.Repositories
             _concreteTypeResolver = concreteTypeResolver ?? FindConcreteImplementationForInterface;
         }
 
+        private async Task<string> ReadFileTextAsync()
+        {
+            var rawText = await File.ReadAllTextAsync(_filePath);
+            if (string.IsNullOrWhiteSpace(rawText))
+            {
+                return rawText;
+            }
+
+            try
+            {
+                return _encryptionService.Decrypt(rawText);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to decrypt flat file contents at {FilePath}.", _filePath);
+                throw new InvalidOperationException("Flat file could not be decrypted. It may be corrupt or the encryption key may have changed.", ex);
+            }
+        }
+
+        private async Task WriteFileTextAsync(string plainText)
+        {
+            var cipherText = _encryptionService.Encrypt(plainText);
+            await File.WriteAllTextAsync(_filePath, cipherText);
+        }
+
         public async Task<T> GetByIdAsync(T entity)
         {
             if (entity == null)
@@ -75,7 +103,7 @@ namespace Nkolex.Propman.Server.Data.Repositories
                     throw new InvalidOperationException($"Entity not found in table {tableName}.");
                 }
 
-                var fileText = await File.ReadAllTextAsync(_filePath);
+                var fileText = await ReadFileTextAsync();
                 if (string.IsNullOrWhiteSpace(fileText))
                 {
                     _logger.LogWarning("Flat file is empty. Cannot retrieve entity from table {Table}.", tableName);
@@ -151,7 +179,7 @@ namespace Nkolex.Propman.Server.Data.Repositories
                 }
                 else
                 {
-                    var fileText = await File.ReadAllTextAsync(_filePath);
+                    var fileText = await ReadFileTextAsync();
                     if (string.IsNullOrWhiteSpace(fileText))
                     {
                         rootObj = [];
@@ -205,7 +233,7 @@ namespace Nkolex.Propman.Server.Data.Repositories
 
                 rootObj[tableName] = JsonSerializer.SerializeToNode(existingListForTable, _jsonOptions);
 
-                await File.WriteAllTextAsync(_filePath, rootObj.ToJsonString(options: _jsonOptions));
+                await WriteFileTextAsync(rootObj.ToJsonString(options: _jsonOptions));
 
                 return 1;
             }
@@ -299,7 +327,7 @@ namespace Nkolex.Propman.Server.Data.Repositories
                     return 0;
                 }
 
-                var fileText = await File.ReadAllTextAsync(_filePath);
+                var fileText = await ReadFileTextAsync();
                 if (string.IsNullOrWhiteSpace(fileText))
                 {
                     _logger.LogWarning("Flat file is empty. Cannot update entity in table {Table}.", tableName);
@@ -358,7 +386,7 @@ namespace Nkolex.Propman.Server.Data.Repositories
 
                 rootObj[tableName] = JsonSerializer.SerializeToNode(existingListForTable, _jsonOptions);
 
-                await File.WriteAllTextAsync(_filePath, rootObj.ToJsonString(options: _jsonOptions));
+                await WriteFileTextAsync(rootObj.ToJsonString(options: _jsonOptions));
 
                 return 1;
             }
@@ -415,7 +443,7 @@ namespace Nkolex.Propman.Server.Data.Repositories
 
             try
             {
-                var fileText = await File.ReadAllTextAsync(_filePath);
+                var fileText = await ReadFileTextAsync();
                 if (string.IsNullOrWhiteSpace(fileText))
                 {
                     return [];

@@ -54,6 +54,14 @@ namespace Nkolex.Propman.Server
             builder.Services.Configure<FlatFileOptions>(repoSection.GetSection("FlatFile"));
             var repoType = repoSection.GetValue<string>("Type");
 
+            var encryptionKeyFile = "/etc/propmanserver/encryption-key.txt";
+            if (File.Exists(encryptionKeyFile))
+            {
+                builder.Configuration["Encryption:Key"] = File.ReadAllText(encryptionKeyFile).Trim();
+            }
+            builder.Services.Configure<EncryptionOptions>(builder.Configuration.GetSection("Encryption"));
+            builder.Services.AddSingleton<IEncryptionService, AesGcmEncryptionService>();
+
             if (repoType is "FlatFile")
             {
                 builder.Services.AddSingleton<IRepositoryOptions>(sp =>
