@@ -137,6 +137,17 @@ namespace Nkolex.Propman.Server
 
             var app = builder.Build();
 
+            if (repoType is "FlatFile")
+            {
+                using var migrationScope = app.Services.CreateScope();
+                var encryptionService = migrationScope.ServiceProvider.GetRequiredService<IEncryptionService>();
+                var flatFileOptions = migrationScope.ServiceProvider.GetRequiredService<IOptions<FlatFileOptions>>().Value;
+                var flatFilePath = Path.Combine(app.Environment.ContentRootPath, flatFileOptions.FilePath);
+
+                var migrator = new FlatFileEncryptionMigrator(encryptionService);
+                migrator.MigrateAsync(flatFilePath).GetAwaiter().GetResult();
+            }
+
             app.UseCors("AllowFrontendClients");
 
             if (app.Environment.IsDevelopment())
