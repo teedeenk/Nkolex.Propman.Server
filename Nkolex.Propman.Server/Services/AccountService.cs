@@ -8,10 +8,12 @@ namespace Nkolex.Propman.Server.Services
     public class AccountService : IAccountService
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly IPasswordHasher _passwordHasher;
 
-        public AccountService(IServiceProvider serviceProvider)
+        public AccountService(IServiceProvider serviceProvider, IPasswordHasher passwordHasher)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
         }
 
         public async Task<ICreateAccountResponse> AddUserAsync(ICreateAccountRequest createAccountRequest)
@@ -32,7 +34,7 @@ namespace Nkolex.Propman.Server.Services
                 throw new ArgumentNullException(nameof(createAccountRequest), "CreateAccountRequest cannot be null");
             }
 
-            IAccount entity = RequestToAccount(createAccountRequest);
+            IAccount entity = RequestToAccount(createAccountRequest, _passwordHasher);
             using (var scope = _serviceProvider.CreateScope())
             {
                 var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
@@ -72,7 +74,7 @@ namespace Nkolex.Propman.Server.Services
             account.Roles.Add("Tenant");
             return account;
         }
-        private static IAccount RequestToAccount(ICreateAccountRequest createAccountRequest)
+        private static IAccount RequestToAccount(ICreateAccountRequest createAccountRequest, IPasswordHasher passwordHasher)
         {
             IAccount account = new Account
             {
@@ -81,7 +83,7 @@ namespace Nkolex.Propman.Server.Services
                 Surname = createAccountRequest.Surname,
                 PhoneNumber = createAccountRequest.PhoneNumber,
                 Email = createAccountRequest.Email,
-                Password = createAccountRequest.Password,
+                Password = passwordHasher.HashPassword(createAccountRequest.Password),
                 AgreeToTerms = createAccountRequest.AgreeToTerms,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,

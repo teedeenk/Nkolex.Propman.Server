@@ -28,6 +28,7 @@ namespace Nkolex.Propman.Server
             builder.Services.AddScoped(typeof(IRepository<>), typeof(FlatFileRepository<>));
             builder.Services.AddTransient<IAccountDataService<IAccount>, AccountDataService<IAccount>>();
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
             builder.Services.AddSingleton(typeof(IDataStore<>), typeof(DataStore<>));
             builder.Services.AddTransient<IStatement, Statement>();
             builder.Services.AddTransient<IUploadCsvDataService<Statement, StatementLine>, UploadCsvDataService>();
@@ -146,6 +147,11 @@ namespace Nkolex.Propman.Server
 
                 var migrator = new FlatFileEncryptionMigrator(encryptionService);
                 migrator.MigrateAsync(flatFilePath).GetAwaiter().GetResult();
+
+                var accountDataService = migrationScope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
+                var passwordHasher = migrationScope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+                var passwordHashMigrator = new PasswordHashMigrator(accountDataService, passwordHasher);
+                passwordHashMigrator.MigrateAsync().GetAwaiter().GetResult();
             }
 
             app.UseCors("AllowFrontendClients");

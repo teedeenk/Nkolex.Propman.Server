@@ -53,12 +53,35 @@ namespace Nkolex.Propman.Tests
             var configuration = Substitute.For<Microsoft.Extensions.Configuration.IConfiguration>();
 
             var users = new List<User>();
-            var authService = new AuthService(logger,_accountDataService, configuration);
+            var authService = new AuthService(logger, _accountDataService, configuration, new Pbkdf2PasswordHasher());
             var result = await authService.ValidateUserAsync(user, users);
 
             Assert.NotNull(result);
             Assert.Equal(user.Email, result.Email);
-            Assert.Equal(user.PasswordHash, result.PasswordHash);
+        }
+
+        [Fact]
+        public async Task Given_Correct_Plaintext_Password_ValidateUserAsync_Should_Authenticate_Against_Stored_Hash()
+        {
+            var passwordHasher = new Pbkdf2PasswordHasher();
+            var storedAccounts = new List<IAccount>
+            {
+                new Account { Email = "test@example.com", Password = passwordHasher.HashPassword("Password123!") }
+            };
+
+            var accountDataService = Substitute.For<IAccountDataService<IAccount>>();
+            accountDataService.GetAllAsync().Returns(storedAccounts);
+
+            var logger = Substitute.For<ILogger<AuthService>>();
+            var configuration = Substitute.For<Microsoft.Extensions.Configuration.IConfiguration>();
+
+            var authService = new AuthService(logger, accountDataService, configuration, passwordHasher);
+            var loginAttempt = new User { Email = "test@example.com", PasswordHash = "Password123!" };
+
+            var result = await authService.ValidateUserAsync(loginAttempt, []);
+
+            Assert.NotNull(result);
+            Assert.Equal(loginAttempt.Email, result.Email);
         }
 
         [Fact]
@@ -72,7 +95,7 @@ namespace Nkolex.Propman.Tests
             var configuration = Substitute.For<Microsoft.Extensions.Configuration.IConfiguration>();
 
             var users = new List<User>();
-            var authService = new AuthService(logger, _accountDataService, configuration);
+            var authService = new AuthService(logger, _accountDataService, configuration, new Pbkdf2PasswordHasher());
             user.PasswordHash = "PasswordChanged";
 
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _authService.ValidateUserAsync(user, users));
@@ -94,7 +117,7 @@ namespace Nkolex.Propman.Tests
                 .AddInMemoryCollection(FakeJwtConfig())
                 .Build();
 
-            var authService = new AuthService(logger, _accountDataService, configuration);
+            var authService = new AuthService(logger, _accountDataService, configuration, new Pbkdf2PasswordHasher());
 
             var result = await authService.GenerateJwtAsync(user);
 
@@ -122,7 +145,7 @@ namespace Nkolex.Propman.Tests
                 }]);
 
 
-            var authService = new AuthService(logger, accountDataService, configuration);
+            var authService = new AuthService(logger, accountDataService, configuration, new Pbkdf2PasswordHasher());
             var sud = await authService.GetUserByIdAsync(user.Email);
 
             Assert.NotNull(sud);
@@ -144,11 +167,12 @@ namespace Nkolex.Propman.Tests
 
         private static List<IAccount> CreateAccountList()
         {
+            var hashedPassword = new Pbkdf2PasswordHasher().HashPassword("Password123!");
             return new List<IAccount>
             {
-                new Account { Email = "test@example.com", Password = "Password123!" },
-                new Account { Email = "test1@example.com", Password = "Password123!" },
-                new Account { Email = "test2@example.com", Password = "Password123!" }
+                new Account { Email = "test@example.com", Password = hashedPassword },
+                new Account { Email = "test1@example.com", Password = hashedPassword },
+                new Account { Email = "test2@example.com", Password = hashedPassword }
             };
         }
 

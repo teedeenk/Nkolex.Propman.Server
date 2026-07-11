@@ -49,6 +49,26 @@ namespace Nkolex.Propman.Tests
         }
 
         [Fact]
+        public async Task Given_CreateAccountRequest_AddUserAsync_Should_Store_Hashed_Password()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            if (_accountService == null)
+            {
+                throw new InvalidOperationException("AccountService is not registered in the service collection.");
+            }
+
+            await _accountService.AddUserAsync(createAccountRequest);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
+
+            Assert.NotEqual(createAccountRequest.Password, storedAccount.Password);
+
+            var passwordHasher = new Pbkdf2PasswordHasher();
+            Assert.True(passwordHasher.VerifyPassword(storedAccount.Password, createAccountRequest.Password));
+        }
+
+        [Fact]
         public async Task Given_ValidRole_Should_Be_Able_to_Uprove_Users()
         {
             var account = CreateAccount();

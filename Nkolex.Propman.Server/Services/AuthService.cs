@@ -15,12 +15,14 @@ namespace Nkolex.Propman.Server.Services
         private readonly ILogger<AuthService> _logger;
         private readonly IAccountDataService<IAccount>? _accountDataService;
         private readonly IConfiguration _configuration;
+        private readonly IPasswordHasher _passwordHasher;
 
-        public AuthService(ILogger<AuthService> logger, IAccountDataService<IAccount> accountDataService, IConfiguration configuration)
+        public AuthService(ILogger<AuthService> logger, IAccountDataService<IAccount> accountDataService, IConfiguration configuration, IPasswordHasher passwordHasher)
         {
             _logger = logger;
             _accountDataService = accountDataService ?? throw new ArgumentNullException(nameof(accountDataService));
             _configuration = configuration;
+            _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
         }
 
         public async Task<User?> ValidateUserAsync(User user, List<User> users)
@@ -38,7 +40,7 @@ namespace Nkolex.Propman.Server.Services
             }
 
             users = await GetUsersAsync();
-            var userFromList = users.FirstOrDefault(u => u.Email.Equals(user.Email, StringComparison.OrdinalIgnoreCase) && u.PasswordHash.Equals(user.PasswordHash));
+            var userFromList = users.FirstOrDefault(u => u.Email.Equals(user.Email, StringComparison.OrdinalIgnoreCase) && _passwordHasher.VerifyPassword(u.PasswordHash, user.PasswordHash));
             if (userFromList == null)
             {
                 _logger.LogInformation("User is not authorised.");
