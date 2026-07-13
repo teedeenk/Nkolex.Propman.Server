@@ -90,6 +90,12 @@ namespace Nkolex.Propman.Server
                 jwtKey = builder.Configuration["Jwt:Key"]!;
             }
 
+            if (string.IsNullOrWhiteSpace(jwtKey))
+            {
+                throw new InvalidOperationException(
+                    $"Jwt:Key is missing. Provide it via {jwtSecretFile} or the Jwt:Key configuration setting.");
+            }
+
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
