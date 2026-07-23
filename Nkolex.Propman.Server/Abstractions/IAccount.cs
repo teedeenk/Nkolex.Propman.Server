@@ -1,4 +1,6 @@
-﻿namespace Nkolex.Propman.Server.Abstractions
+﻿using Nkolex.Propman.Server.Models;
+
+namespace Nkolex.Propman.Server.Abstractions
 {
     public interface IAccount
     {
@@ -15,5 +17,6 @@
         bool IsDeleted { get; set; }
         List<string> Roles { get; set; }
         List<Guid>? Properties {  get; set; }
+        SubscriptionTier SubscriptionTier { get; set; }
     }
 }

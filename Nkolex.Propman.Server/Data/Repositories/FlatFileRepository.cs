@@ -137,7 +137,6 @@ namespace Nkolex.Propman.Server.Data.Repositories
                     throw new InvalidOperationException($"Entity not found in table {tableName}.");
                 }
 
-                // Find the entity by comparing using the existing equality method
                 foreach (var item in existingListForTable)
                 {
                     if (AreEntitiesEqual(item, entity))
@@ -361,7 +360,6 @@ namespace Nkolex.Propman.Server.Data.Repositories
                     return 0;
                 }
 
-                // Find the entity to update by comparing all properties
                 var indexToUpdate = -1;
                 for (int i = 0; i < existingListForTable.Count; i++)
                 {
@@ -378,7 +376,6 @@ namespace Nkolex.Propman.Server.Data.Repositories
                     return 0;
                 }
 
-                // Replace the entity
                 existingListForTable[indexToUpdate] = entity;
 
                 _dataStore.TableName = tableName;
@@ -406,7 +403,6 @@ namespace Nkolex.Propman.Server.Data.Repositories
             if (entity1 == null && entity2 == null) return true;
             if (entity1 == null || entity2 == null) return false;
 
-            // Try to find an Id property to compare
             var idProperty = typeof(T).GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
             if (idProperty != null && idProperty.CanRead)
             {
@@ -418,7 +414,6 @@ namespace Nkolex.Propman.Server.Data.Repositories
                 }
             }
 
-            // Fallback: compare Email property if it exists (common identifier)
             var emailProperty = typeof(T).GetProperty("Email", BindingFlags.Public | BindingFlags.Instance);
             if (emailProperty != null && emailProperty.CanRead)
             {
@@ -430,7 +425,6 @@ namespace Nkolex.Propman.Server.Data.Repositories
                 }
             }
 
-            // Last resort: reference equality
             return ReferenceEquals(entity1, entity2);
         }
 

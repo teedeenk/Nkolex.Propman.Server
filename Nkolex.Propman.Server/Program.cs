@@ -12,6 +12,7 @@ using Nkolex.Propman.Server.Models;
 using Nkolex.Propman.Server.Models.DTOs;
 using Nkolex.Propman.Server.Services;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace Nkolex.Propman.Server
 {
@@ -76,7 +77,11 @@ namespace Nkolex.Propman.Server
             builder.Services.Configure<Tables>(builder.Configuration.GetSection("Tables"));
             builder.Services.AddSingleton<ITables>(sp => sp.GetRequiredService<IOptions<Tables>>().Value);
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
 
             var jwtSecretFile = "/etc/propmanserver/jwt-secret.txt";
             var jwtKey = string.Empty;

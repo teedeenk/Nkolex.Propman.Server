@@ -69,7 +69,8 @@ namespace Nkolex.Propman.Server.Controllers
             var fullName = user.FullName;
             var roles = user.Roles;
             var userId = user.Id;
-            return Ok(new { fullName, roles, userId});
+            var subscriptionTier = user.SubscriptionTier;
+            return Ok(new { fullName, roles, userId, subscriptionTier});
         }
 
         private static User ConvertRequestToUser(LoginRequest request)

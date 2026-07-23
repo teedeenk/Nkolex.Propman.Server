@@ -144,7 +144,8 @@ namespace Nkolex.Propman.Server.Services
                             Email = account.Email,
                             FullName = $"{account.Name} {account.Surname}",
                             PasswordHash = account.Password,
-                            Roles = account.Roles
+                            Roles = account.Roles,
+                            SubscriptionTier = account.SubscriptionTier
                         };
                         return user;
                     }

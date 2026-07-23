@@ -17,5 +17,6 @@ namespace Nkolex.Propman.Server.Models.DTOs
         public bool IsDeleted { get; set; }
         public List<string> Roles { get; set; } = [ "Guest" ];
         public List<Guid>? Properties { get; set; }
+        public SubscriptionTier SubscriptionTier { get; set; } = SubscriptionTier.Free;
     }
 }
