@@ -77,6 +77,93 @@ namespace Nkolex.Propman.Tests
             Assert.True(sud);
         }
 
+        [Fact]
+        public async Task Given_ValidAccount_UpdateUserAsync_Should_Update_User_Info()
+        {
+            var account = CreateAccount();
+            await _accountDataService.AddAsync(account);
+
+            var updateRequest = Factory.Services.GetRequiredService<IAccount>();
+            updateRequest.Id = account.Id;
+            updateRequest.Name = "Jane";
+            updateRequest.Surname = "Smith";
+            updateRequest.PhoneNumber = "0987654321";
+            updateRequest.Email = "jane.smith@example.com";
+            updateRequest.Password = "ShouldNotBeUsed123!";
+            updateRequest.AgreeToTerms = account.AgreeToTerms;
+            updateRequest.Roles = account.Roles;
+
+            var result = await _accountService!.UpdateUserAsync(updateRequest);
+            Assert.True(result);
+
+            var storedAccount = (await _accountDataService.GetAllAsync()).First(a => a.Id == account.Id);
+            Assert.Equal("Jane", storedAccount.Name);
+            Assert.Equal("Smith", storedAccount.Surname);
+            Assert.Equal("0987654321", storedAccount.PhoneNumber);
+            Assert.Equal("jane.smith@example.com", storedAccount.Email);
+            Assert.Equal(account.Password, storedAccount.Password);
+        }
+
+        [Fact]
+        public async Task Given_NullAccount_UpdateUserAsync_Should_ThrowException()
+        {
+            await Assert.ThrowsAsync<ArgumentNullException>(() => _accountService!.UpdateUserAsync(null!));
+        }
+
+        [Fact]
+        public async Task Given_Invalid_Account_UpdateUserAsync_Should_ThrowException()
+        {
+            var updateRequest = Factory.Services.GetRequiredService<IAccount>();
+            updateRequest.Id = Guid.NewGuid();
+            updateRequest.Name = "";
+            updateRequest.Surname = "Smith";
+            updateRequest.PhoneNumber = "0987654321";
+            updateRequest.Email = "jane.smith@example.com";
+
+            await Assert.ThrowsAsync<ArgumentException>(() => _accountService!.UpdateUserAsync(updateRequest));
+        }
+
+        [Fact]
+        public async Task Given_NonExistentAccount_UpdateUserAsync_Should_Return_False()
+        {
+            var updateRequest = Factory.Services.GetRequiredService<IAccount>();
+            updateRequest.Id = Guid.NewGuid();
+            updateRequest.Name = "Jane";
+            updateRequest.Surname = "Smith";
+            updateRequest.PhoneNumber = "0987654321";
+            updateRequest.Email = "jane.smith@example.com";
+
+            var result = await _accountService!.UpdateUserAsync(updateRequest);
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task Given_NoAccounts_GetAllUsersAsync_Should_Return_EmptyList()
+        {
+            var result = await _accountService!.GetAllUsersAsync();
+
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task Given_MultipleAccounts_GetAllUsersAsync_Should_Return_All_Accounts()
+        {
+            var accountOne = CreateAccount();
+            await _accountDataService.AddAsync(accountOne);
+
+            var accountTwo = CreateAccount();
+            accountTwo.Id = Guid.NewGuid();
+            accountTwo.Email = "jane.doe@example.com";
+            await _accountDataService.AddAsync(accountTwo);
+
+            var result = await _accountService!.GetAllUsersAsync();
+
+            Assert.Equal(2, result.Count);
+            Assert.Contains(result, a => a.Id == accountOne.Id);
+            Assert.Contains(result, a => a.Id == accountTwo.Id);
+        }
+
         private IAccount CreateAccount()
         {
             var account = Factory.Services.GetRequiredService<IAccount>();

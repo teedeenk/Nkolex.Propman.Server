@@ -69,6 +69,53 @@ namespace Nkolex.Propman.Server.Services
 
             return true;
         }
+        public async Task<bool> UpdateUserAsync(IAccount account)
+        {
+            if (account == null)
+            {
+                throw new ArgumentNullException(nameof(account), "Account cannot be null");
+            }
+
+            if (account.Id == Guid.Empty ||
+                string.IsNullOrWhiteSpace(account.Name) ||
+                string.IsNullOrWhiteSpace(account.Surname) ||
+                string.IsNullOrWhiteSpace(account.PhoneNumber) ||
+                string.IsNullOrWhiteSpace(account.Email))
+            {
+                throw new ArgumentException("Account must have a valid Id, Name, Surname, PhoneNumber and Email", nameof(account));
+            }
+
+            using var scope = _serviceProvider.CreateScope();
+            var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
+
+            var accounts = await dataService.GetAllAsync();
+            var existingAccount = accounts.FirstOrDefault(a => a.Id == account.Id);
+            if (existingAccount == null)
+            {
+                return false;
+            }
+
+            existingAccount.Name = account.Name;
+            existingAccount.Surname = account.Surname;
+            existingAccount.PhoneNumber = account.PhoneNumber;
+            existingAccount.Email = account.Email;
+            existingAccount.AgreeToTerms = account.AgreeToTerms;
+            existingAccount.Roles = account.Roles;
+            existingAccount.Properties = account.Properties;
+            existingAccount.SubscriptionTier = account.SubscriptionTier;
+            existingAccount.UpdatedAt = DateTime.UtcNow;
+
+            var update = await dataService.UpdateAsync(existingAccount);
+            return update != 0;
+        }
+
+        public async Task<List<IAccount>> GetAllUsersAsync()
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
+            return await dataService.GetAllAsync();
+        }
+
         private static IAccount UpdateAccount(IAccount account)
         {
             account.Roles.Add("Tenant");

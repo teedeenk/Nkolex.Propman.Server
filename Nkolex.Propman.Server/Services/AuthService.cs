@@ -71,7 +71,8 @@ namespace Nkolex.Propman.Server.Services
                     Id = account.Id,
                     Email = account.Email,
                     PasswordHash = account.Password,
-                    FullName = $"{account.Name} {account.Surname}"
+                    FullName = $"{account.Name} {account.Surname}",
+                    Roles = account.Roles
                 };
                 users.Add(user);
             }
@@ -113,6 +114,8 @@ namespace Nkolex.Propman.Server.Services
                 new(JwtRegisteredClaimNames.Sub, user.Email),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
+
+            claims.AddRange(user.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
             var token = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],

@@ -39,5 +39,32 @@ namespace Nkolex.Propman.Server.Controllers
                 return StatusCode(401, new { message = "User approval failed, please try again." });
             }
         }
+
+        [Authorize(Roles = $"{UserRoles.Admin}")]
+        [HttpPut("update")]
+        public async Task<IActionResult> UpdateUser([FromBody] Account account)
+        {
+            try
+            {
+                var result = await _accountService.UpdateUserAsync(account);
+                if (!result)
+                {
+                    return NotFound(new { message = "User not found." });
+                }
+                return Ok();
+            }
+            catch (ArgumentException)
+            {
+                return BadRequest(new { message = "Invalid account data." });
+            }
+        }
+
+        [Authorize(Roles = $"{UserRoles.Admin}")]
+        [HttpGet]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var accounts = await _accountService.GetAllUsersAsync();
+            return Ok(accounts);
+        }
     }
 }

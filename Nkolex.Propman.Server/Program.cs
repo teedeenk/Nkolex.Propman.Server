@@ -180,6 +180,7 @@ namespace Nkolex.Propman.Server
                 app.UseHttpsRedirection();
             }
 
+            app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
             app.Run();
