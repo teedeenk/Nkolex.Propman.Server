@@ -183,6 +183,7 @@ namespace Nkolex.Propman.Server
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
+            app.Logger.LogInformation("--- CRITICAL CHECK: THE API HAS FULLY STARTED SUCCESSFULLY ---");
             app.Run();
         }
     }
