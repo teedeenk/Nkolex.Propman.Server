@@ -11,6 +11,7 @@ using Nkolex.Propman.Server.Data.Repositories;
 using Nkolex.Propman.Server.Models;
 using Nkolex.Propman.Server.Models.DTOs;
 using Nkolex.Propman.Server.Services;
+using Nkolex.Propman.Server.Startup;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -20,6 +21,8 @@ namespace Nkolex.Propman.Server
     {
         public static void Main(string[] args)
         {
+            ConsoleBanner.Print();
+
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddTransient<ICreateAccountRequest, CreateAccountRequest>();
@@ -183,7 +186,6 @@ namespace Nkolex.Propman.Server
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
-            app.Logger.LogInformation("--- CRITICAL CHECK: THE API HAS FULLY STARTED SUCCESSFULLY ---");
             app.Run();
         }
     }
