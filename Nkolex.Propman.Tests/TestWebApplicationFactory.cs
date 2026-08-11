@@ -34,6 +34,9 @@ namespace Nkolex.Propman.Tests
                 
                 services.AddSingleton<IRepository<IInvoice>>(
                     new InMemoryRepository<IInvoice>(i => i.Id));
+
+                services.RemoveAll<IEmailService>();
+                services.AddSingleton<IEmailService, FakeEmailService>();
             });
         }
     }

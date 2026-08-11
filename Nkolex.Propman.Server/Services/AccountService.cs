@@ -9,11 +9,13 @@ namespace Nkolex.Propman.Server.Services
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IPasswordHasher _passwordHasher;
+        private readonly IEmailService _emailService;
 
-        public AccountService(IServiceProvider serviceProvider, IPasswordHasher passwordHasher)
+        public AccountService(IServiceProvider serviceProvider, IPasswordHasher passwordHasher, IEmailService emailService)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
+            _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         }
 
         public async Task<ICreateAccountResponse> AddUserAsync(ICreateAccountRequest createAccountRequest)
@@ -41,6 +43,8 @@ namespace Nkolex.Propman.Server.Services
                 await dataService.AddAsync(entity);
             }
 
+            await _emailService.SendEmailConfirmationAsync(entity.Email, entity.EmailConfirmationToken!);
+
             ICreateAccountResponse response = new CreateAccountResponse
             {
                 Success = true,
@@ -48,6 +52,49 @@ namespace Nkolex.Propman.Server.Services
                 UserId = "generated-user-id"
             };
             return response;
+        }
+
+        public async Task<bool> ConfirmEmailAsync(string email, string token)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                throw new ArgumentNullException(nameof(email));
+            }
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                throw new ArgumentNullException(nameof(token));
+            }
+
+            using var scope = _serviceProvider.CreateScope();
+            var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
+
+            var accounts = await dataService.GetAllAsync();
+            var account = accounts.FirstOrDefault(a => a.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+            if (account == null)
+            {
+                return false;
+            }
+
+            if (account.EmailConfirmed)
+            {
+                return true;
+            }
+
+            if (!string.Equals(account.EmailConfirmationToken, token, StringComparison.Ordinal) ||
+                account.EmailConfirmationTokenExpiresAt == null ||
+                account.EmailConfirmationTokenExpiresAt < DateTime.UtcNow)
+            {
+                return false;
+            }
+
+            account.EmailConfirmed = true;
+            account.EmailConfirmationToken = null;
+            account.EmailConfirmationTokenExpiresAt = null;
+            account.UpdatedAt = DateTime.UtcNow;
+
+            var update = await dataService.UpdateAsync(account);
+            return update != 0;
         }
 
         public async Task<bool> ApproveUser(IAccount account)
@@ -135,7 +182,10 @@ namespace Nkolex.Propman.Server.Services
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 IsDeleted = false,
-                DeletedAt = null
+                DeletedAt = null,
+                EmailConfirmed = false,
+                EmailConfirmationToken = Guid.NewGuid().ToString("N"),
+                EmailConfirmationTokenExpiresAt = DateTime.UtcNow.AddHours(24)
             };
             return account;
         }

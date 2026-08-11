@@ -33,6 +33,7 @@ namespace Nkolex.Propman.Server
             builder.Services.AddTransient<IAccountDataService<IAccount>, AccountDataService<IAccount>>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
+            builder.Services.AddTransient<IEmailService, SmtpEmailService>();
             builder.Services.AddSingleton(typeof(IDataStore<>), typeof(DataStore<>));
             builder.Services.AddTransient<IStatement, Statement>();
             builder.Services.AddTransient<IUploadCsvDataService<Statement, StatementLine>, UploadCsvDataService>();
@@ -66,6 +67,12 @@ namespace Nkolex.Propman.Server
             }
             builder.Services.Configure<EncryptionOptions>(builder.Configuration.GetSection("Encryption"));
             builder.Services.AddSingleton<IEncryptionService, AesGcmEncryptionService>();
+
+            var smtpPasswordFile = "/etc/propmanserver/smtp-password.txt";
+            if (File.Exists(smtpPasswordFile))
+            {
+                builder.Configuration["Smtp:Password"] = File.ReadAllText(smtpPasswordFile).Trim();
+            }
 
             if (repoType is "FlatFile")
             {
@@ -166,6 +173,10 @@ namespace Nkolex.Propman.Server
                 var passwordHasher = migrationScope.ServiceProvider.GetRequiredService<IPasswordHasher>();
                 var passwordHashMigrator = new PasswordHashMigrator(accountDataService, passwordHasher);
                 passwordHashMigrator.MigrateAsync().GetAwaiter().GetResult();
+
+                // TODO: Remove after running once in production to confirm all existing accounts' emails.
+                var emailConfirmationMigrator = new EmailConfirmationMigrator(accountDataService);
+                emailConfirmationMigrator.MigrateAsync().GetAwaiter().GetResult();
             }
 
             app.UseCors("AllowFrontendClients");

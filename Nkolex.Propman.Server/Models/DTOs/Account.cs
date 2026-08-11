@@ -18,5 +18,8 @@ namespace Nkolex.Propman.Server.Models.DTOs
         public List<string> Roles { get; set; } = [ "Guest" ];
         public List<Guid>? Properties { get; set; }
         public SubscriptionTier SubscriptionTier { get; set; } = SubscriptionTier.Free;
+        public bool EmailConfirmed { get; set; }
+        public string? EmailConfirmationToken { get; set; }
+        public DateTime? EmailConfirmationTokenExpiresAt { get; set; }
     }
 }

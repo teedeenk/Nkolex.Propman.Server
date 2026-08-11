@@ -66,7 +66,7 @@ namespace Nkolex.Propman.Tests
             var passwordHasher = new Pbkdf2PasswordHasher();
             var storedAccounts = new List<IAccount>
             {
-                new Account { Email = "test@example.com", Password = passwordHasher.HashPassword("Password123!") }
+                new Account { Email = "test@example.com", Password = passwordHasher.HashPassword("Password123!"), EmailConfirmed = true }
             };
 
             var accountDataService = Substitute.For<IAccountDataService<IAccount>>();
@@ -82,6 +82,27 @@ namespace Nkolex.Propman.Tests
 
             Assert.NotNull(result);
             Assert.Equal(loginAttempt.Email, result.Email);
+        }
+
+        [Fact]
+        public async Task Given_Unconfirmed_Email_ValidateUserAsync_Should_Throw_UnauthorizedAccessException()
+        {
+            var passwordHasher = new Pbkdf2PasswordHasher();
+            var storedAccounts = new List<IAccount>
+            {
+                new Account { Email = "test@example.com", Password = passwordHasher.HashPassword("Password123!"), EmailConfirmed = false }
+            };
+
+            var accountDataService = Substitute.For<IAccountDataService<IAccount>>();
+            accountDataService.GetAllAsync().Returns(storedAccounts);
+
+            var logger = Substitute.For<ILogger<AuthService>>();
+            var configuration = Substitute.For<Microsoft.Extensions.Configuration.IConfiguration>();
+
+            var authService = new AuthService(logger, accountDataService, configuration, passwordHasher);
+            var loginAttempt = new User { Email = "test@example.com", PasswordHash = "Password123!" };
+
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => authService.ValidateUserAsync(loginAttempt, []));
         }
 
         [Fact]
@@ -170,9 +191,9 @@ namespace Nkolex.Propman.Tests
             var hashedPassword = new Pbkdf2PasswordHasher().HashPassword("Password123!");
             return new List<IAccount>
             {
-                new Account { Email = "test@example.com", Password = hashedPassword },
-                new Account { Email = "test1@example.com", Password = hashedPassword },
-                new Account { Email = "test2@example.com", Password = hashedPassword }
+                new Account { Email = "test@example.com", Password = hashedPassword, EmailConfirmed = true },
+                new Account { Email = "test1@example.com", Password = hashedPassword, EmailConfirmed = true },
+                new Account { Email = "test2@example.com", Password = hashedPassword, EmailConfirmed = true }
             };
         }
 

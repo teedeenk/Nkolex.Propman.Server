@@ -10,5 +10,6 @@ namespace Nkolex.Propman.Server.Models
         public string PasswordHash { get; set; } = string.Empty;
         public List<string> Roles { get; set; } = [];
         public SubscriptionTier SubscriptionTier { get; set; } = SubscriptionTier.Free;
+        public bool EmailConfirmed { get; set; }
     }
 }

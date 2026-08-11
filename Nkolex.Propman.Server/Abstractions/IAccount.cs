@@ -18,5 +18,8 @@ namespace Nkolex.Propman.Server.Abstractions
         List<string> Roles { get; set; }
         List<Guid>? Properties {  get; set; }
         SubscriptionTier SubscriptionTier { get; set; }
+        bool EmailConfirmed { get; set; }
+        string? EmailConfirmationToken { get; set; }
+        DateTime? EmailConfirmationTokenExpiresAt { get; set; }
     }
 }

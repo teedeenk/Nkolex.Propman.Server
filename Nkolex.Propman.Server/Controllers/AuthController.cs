@@ -45,6 +45,11 @@ namespace Nkolex.Propman.Server.Controllers
                     FullName = user.FullName
                 });
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "Login unauthorized");
+                return StatusCode(401, new { message = ex.Message == "Email address is not confirmed." ? ex.Message : "login failed." });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error! during login");

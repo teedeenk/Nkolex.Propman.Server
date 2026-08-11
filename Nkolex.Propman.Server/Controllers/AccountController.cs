@@ -25,6 +25,18 @@ namespace Nkolex.Propman.Server.Controllers
             return Ok(response);
         }
 
+        [HttpGet("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail([FromQuery] string email, [FromQuery] string token)
+        {
+            var confirmed = await _accountService.ConfirmEmailAsync(email, token);
+            if (!confirmed)
+            {
+                return BadRequest(new { message = "Invalid or expired email confirmation token." });
+            }
+
+            return Ok(new { message = "Email confirmed successfully." });
+        }
+
         [Authorize(Roles = $"{UserRoles.Admin}, {UserRoles.PropertyManager}")]
         [HttpPut("approve")]
         public async Task<IActionResult> ApproveUser([FromBody] Account account)

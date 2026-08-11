@@ -46,6 +46,12 @@ namespace Nkolex.Propman.Server.Services
                 _logger.LogInformation("User is not authorised.");
                 throw new UnauthorizedAccessException();
             }
+
+            if (!userFromList.EmailConfirmed)
+            {
+                _logger.LogInformation("User's email address is not confirmed.");
+                throw new UnauthorizedAccessException("Email address is not confirmed.");
+            }
             return userFromList;
         }
         public async Task<List<User>> GetUsersAsync()
@@ -72,7 +78,8 @@ namespace Nkolex.Propman.Server.Services
                     Email = account.Email,
                     PasswordHash = account.Password,
                     FullName = $"{account.Name} {account.Surname}",
-                    Roles = account.Roles
+                    Roles = account.Roles,
+                    EmailConfirmed = account.EmailConfirmed
                 };
                 users.Add(user);
             }
@@ -148,7 +155,8 @@ namespace Nkolex.Propman.Server.Services
                             FullName = $"{account.Name} {account.Surname}",
                             PasswordHash = account.Password,
                             Roles = account.Roles,
-                            SubscriptionTier = account.SubscriptionTier
+                            SubscriptionTier = account.SubscriptionTier,
+                            EmailConfirmed = account.EmailConfirmed
                         };
                         return user;
                     }

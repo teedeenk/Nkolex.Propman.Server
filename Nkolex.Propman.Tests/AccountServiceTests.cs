@@ -14,12 +14,14 @@ namespace Nkolex.Propman.Tests
     {
         private readonly IAccountService? _accountService;
         private IAccountDataService<IAccount> _accountDataService;
+        private readonly FakeEmailService _emailService;
 
 
         public AccountServiceTests() : base (new TestWebApplicationFactory<Program>())
         {
             _accountService = Factory.Services.GetRequiredService<IAccountService>();
             _accountDataService = Factory.Services.GetRequiredService<IAccountDataService<IAccount>>();
+            _emailService = (FakeEmailService)Factory.Services.GetRequiredService<IEmailService>();
         }
 
         [Fact]
@@ -46,6 +48,67 @@ namespace Nkolex.Propman.Tests
                 throw new InvalidOperationException("AccountService is not registered in the service collection.");
             }
             await Assert.ThrowsAsync<ArgumentNullException>(() => _accountService.AddUserAsync(createAccountRequest));
+        }
+
+        [Fact]
+        public async Task Given_CreateAccountRequest_AddUserAsync_Should_Send_EmailConfirmation()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
+
+            Assert.False(storedAccount.EmailConfirmed);
+            Assert.False(string.IsNullOrWhiteSpace(storedAccount.EmailConfirmationToken));
+            Assert.Contains(_emailService.SentConfirmations, sent => sent.Email == createAccountRequest.Email && sent.Token == storedAccount.EmailConfirmationToken);
+        }
+
+        [Fact]
+        public async Task Given_Valid_Token_ConfirmEmailAsync_Should_Confirm_Account()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
+
+            var result = await _accountService.ConfirmEmailAsync(createAccountRequest.Email, storedAccount.EmailConfirmationToken!);
+
+            Assert.True(result);
+            var confirmedAccount = (await _accountDataService.GetAllAsync()).First(a => a.Email == createAccountRequest.Email);
+            Assert.True(confirmedAccount.EmailConfirmed);
+            Assert.Null(confirmedAccount.EmailConfirmationToken);
+        }
+
+        [Fact]
+        public async Task Given_Invalid_Token_ConfirmEmailAsync_Should_Return_False()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            var result = await _accountService.ConfirmEmailAsync(createAccountRequest.Email, "invalid-token");
+
+            Assert.False(result);
+            var storedAccount = (await _accountDataService.GetAllAsync()).First(a => a.Email == createAccountRequest.Email);
+            Assert.False(storedAccount.EmailConfirmed);
+        }
+
+        [Fact]
+        public async Task Given_Expired_Token_ConfirmEmailAsync_Should_Return_False()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
+            storedAccount.EmailConfirmationTokenExpiresAt = DateTime.UtcNow.AddHours(-1);
+            await _accountDataService.UpdateAsync(storedAccount);
+
+            var result = await _accountService.ConfirmEmailAsync(createAccountRequest.Email, storedAccount.EmailConfirmationToken!);
+
+            Assert.False(result);
         }
 
         [Fact]
