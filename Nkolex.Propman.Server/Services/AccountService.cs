@@ -37,10 +37,21 @@ namespace Nkolex.Propman.Server.Services
             }
 
             IAccount entity = RequestToAccount(createAccountRequest, _passwordHasher);
+            int added;
             using (var scope = _serviceProvider.CreateScope())
             {
                 var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
-                await dataService.AddAsync(entity);
+                added = await dataService.AddAsync(entity);
+            }
+
+            if (added == 0)
+            {
+                return new CreateAccountResponse
+                {
+                    Success = false,
+                    Message = "An account with this email already exists",
+                    UserId = string.Empty
+                };
             }
 
             await _emailService.SendEmailConfirmationAsync(entity.Email, entity.EmailConfirmationToken!);
