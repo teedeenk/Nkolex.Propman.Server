@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -179,10 +180,9 @@ namespace Nkolex.Propman.Server
                 emailConfirmationMigrator.MigrateAsync().GetAwaiter().GetResult();
             }
 
-            app.UseCors("AllowFrontendClients");
-
             if (app.Environment.IsDevelopment())
             {
+                app.UseDeveloperExceptionPage();
                 app.UseSwagger();
                 app.UseSwaggerUI(c =>
                 {
@@ -191,8 +191,23 @@ namespace Nkolex.Propman.Server
             }
             else
             {
+                app.UseExceptionHandler(errorApp =>
+                {
+                    errorApp.Run(async context =>
+                    {
+                        var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
+                        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogError(exceptionFeature?.Error, "Unhandled exception processing request");
+
+                        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                        context.Response.ContentType = "application/json";
+                        await context.Response.WriteAsync("{\"message\":\"An unexpected error occurred.\"}");
+                    });
+                });
                 app.UseHttpsRedirection();
             }
+
+            app.UseCors("AllowFrontendClients");
 
             app.UseAuthentication();
             app.UseAuthorization();
