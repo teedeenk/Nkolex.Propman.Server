@@ -1,6 +1,7 @@
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
 using Nkolex.Propman.Server.Abstractions;
-using System.Net;
-using System.Net.Mail;
 
 namespace Nkolex.Propman.Server.Services
 {
@@ -43,21 +44,28 @@ namespace Nkolex.Propman.Server.Services
 
             var confirmationLink = $"{baseUrl}/confirm-email?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
 
-            using var message = new MailMessage(from, email)
+            var message = new MimeMessage();
+            message.From.Add(MailboxAddress.Parse(from));
+            message.To.Add(MailboxAddress.Parse(email));
+            message.Subject = "Confirm your email address";
+            message.Body = new TextPart("plain")
             {
-                Subject = "Confirm your email address",
-                Body = $"Please confirm your email address by clicking the following link: {confirmationLink}",
-                IsBodyHtml = false
+                Text = $"Please confirm your email address by clicking the following link: {confirmationLink}"
             };
 
-            using var client = new SmtpClient(host, port);
+            using var client = new SmtpClient();
+            var secureSocketOptions = port == 465
+                ? SecureSocketOptions.SslOnConnect
+                : enableSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None;
+
+            await client.ConnectAsync(host, port, secureSocketOptions);
             if (!string.IsNullOrWhiteSpace(user))
             {
-                client.Credentials = new NetworkCredential(user, password);
+                await client.AuthenticateAsync(user, password);
             }
-            client.EnableSsl = enableSsl;
 
-            await client.SendMailAsync(message);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
             _logger.LogInformation("Email confirmation sent to {Email}", email);
         }
     }
