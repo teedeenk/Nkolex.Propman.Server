@@ -22,6 +22,11 @@ namespace Nkolex.Propman.Server.Controllers
         {
             var response = await _accountService.AddUserAsync(request);
 
+            if (!response.Success)
+            {
+                return Conflict(response);
+            }
+
             return Ok(response);
         }
 
