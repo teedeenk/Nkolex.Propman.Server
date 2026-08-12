@@ -10,12 +10,14 @@ namespace Nkolex.Propman.Server.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly IPasswordHasher _passwordHasher;
         private readonly IEmailService _emailService;
+        private readonly ILogger<AccountService> _logger;
 
-        public AccountService(IServiceProvider serviceProvider, IPasswordHasher passwordHasher, IEmailService emailService)
+        public AccountService(IServiceProvider serviceProvider, IPasswordHasher passwordHasher, IEmailService emailService, ILogger<AccountService> logger)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
             _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
+            _logger = logger;
         }
 
         public async Task<ICreateAccountResponse> AddUserAsync(ICreateAccountRequest createAccountRequest)
@@ -54,7 +56,14 @@ namespace Nkolex.Propman.Server.Services
                 };
             }
 
-            await _emailService.SendEmailConfirmationAsync(entity.Email, entity.EmailConfirmationToken!);
+            try
+            {
+                await _emailService.SendEmailConfirmationAsync(entity.Email, entity.EmailConfirmationToken!);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send email confirmation to {Email}", entity.Email);
+            }
 
             ICreateAccountResponse response = new CreateAccountResponse
             {
