@@ -34,7 +34,8 @@ namespace Nkolex.Propman.Server
             builder.Services.AddTransient<IAccountDataService<IAccount>, AccountDataService<IAccount>>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
-            builder.Services.AddTransient<IEmailService, SmtpEmailService>();
+            builder.Services.AddHttpClient();
+            builder.Services.AddTransient<IEmailService, BrevoEmailService>();
             builder.Services.AddSingleton(typeof(IDataStore<>), typeof(DataStore<>));
             builder.Services.AddTransient<IStatement, Statement>();
             builder.Services.AddTransient<IUploadCsvDataService<Statement, StatementLine>, UploadCsvDataService>();
@@ -69,10 +70,10 @@ namespace Nkolex.Propman.Server
             builder.Services.Configure<EncryptionOptions>(builder.Configuration.GetSection("Encryption"));
             builder.Services.AddSingleton<IEncryptionService, AesGcmEncryptionService>();
 
-            var smtpPasswordFile = "/etc/propmanserver/smtp-password.txt";
-            if (File.Exists(smtpPasswordFile))
+            var brevoApiKeyFile = "/etc/propmanserver/brevo-api-key.txt";
+            if (File.Exists(brevoApiKeyFile))
             {
-                builder.Configuration["Smtp:Password"] = File.ReadAllText(smtpPasswordFile).Trim();
+                builder.Configuration["Brevo:ApiKey"] = File.ReadAllText(brevoApiKeyFile).Trim();
             }
 
             if (repoType is "FlatFile")
