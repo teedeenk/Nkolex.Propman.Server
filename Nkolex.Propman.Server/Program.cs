@@ -11,6 +11,7 @@ using Nkolex.Propman.Server.Data.DataBaseConfig;
 using Nkolex.Propman.Server.Data.Repositories;
 using Nkolex.Propman.Server.Models;
 using Nkolex.Propman.Server.Models.DTOs;
+using Nkolex.Propman.Server.Options;
 using Nkolex.Propman.Server.Services;
 using Nkolex.Propman.Server.Startup;
 using System.Text;
@@ -56,7 +57,23 @@ namespace Nkolex.Propman.Server
                     return impl?.GetType();
                 }
             );
+
             builder.Services.AddHttpContextAccessor();
+            builder.Services.AddHttpClient<IBrevoApiClient, BrevoApiClient>();
+            builder.Services.AddScoped<IEmailTemplateProvider, EmailTemplateProvider>();
+            builder.Services.AddScoped<IEmailService, BrevoEmailService>();
+
+            builder.Services
+                .AddOptions<BrevoOptions>()
+                .Bind(builder.Configuration.GetSection(BrevoOptions.SectionName))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
+            builder.Services
+                .AddOptions<AppOptions>()
+                .Bind(builder.Configuration.GetSection(AppOptions.SectionName))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
 
             var repoSection = builder.Configuration.GetSection("RepositoryOptions");
             builder.Services.Configure<FlatFileOptions>(repoSection.GetSection("FlatFile"));
@@ -80,7 +97,7 @@ namespace Nkolex.Propman.Server
             {
                 builder.Services.AddSingleton<IRepositoryOptions>(sp =>
                     sp.GetRequiredService<IOptions<FlatFileOptions>>().Value);
-                builder.Services.AddSingleton(typeof(IRepository<>),typeof(FlatFileRepository<>));
+                builder.Services.AddSingleton(typeof(IRepository<>), typeof(FlatFileRepository<>));
             }
             else
             {
@@ -131,9 +148,9 @@ namespace Nkolex.Propman.Server
                 });
 
             builder.Services.AddAuthorizationBuilder()
-                .AddPolicy("RequireAdminRole", policy => 
+                .AddPolicy("RequireAdminRole", policy =>
                     policy.RequireRole(UserRoles.Admin))
-                .AddPolicy("RequireManagerOrAdmin", policy => 
+                .AddPolicy("RequireManagerOrAdmin", policy =>
                     policy.RequireRole(UserRoles.Admin, UserRoles.PropertyManager))
                 .AddPolicy("CanManageProperties", policy =>
                     policy.RequireAssertion(context =>
@@ -209,7 +226,6 @@ namespace Nkolex.Propman.Server
             }
 
             app.UseCors("AllowFrontendClients");
-
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
