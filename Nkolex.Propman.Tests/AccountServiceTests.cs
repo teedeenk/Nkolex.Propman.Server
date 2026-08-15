@@ -74,7 +74,7 @@ namespace Nkolex.Propman.Tests
             var accounts = await _accountDataService.GetAllAsync();
             var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
 
-            var result = await _accountService.ConfirmEmailAsync(createAccountRequest.Email, storedAccount.EmailConfirmationToken!);
+            var result = await _accountService.ConfirmEmailAsync(storedAccount.EmailConfirmationToken!);
 
             Assert.True(result);
             var confirmedAccount = (await _accountDataService.GetAllAsync()).First(a => a.Email == createAccountRequest.Email);
@@ -88,7 +88,7 @@ namespace Nkolex.Propman.Tests
             var createAccountRequest = CreateTestAccountRequest();
             await _accountService!.AddUserAsync(createAccountRequest);
 
-            var result = await _accountService.ConfirmEmailAsync(createAccountRequest.Email, "invalid-token");
+            var result = await _accountService.ConfirmEmailAsync("invalid-token");
 
             Assert.False(result);
             var storedAccount = (await _accountDataService.GetAllAsync()).First(a => a.Email == createAccountRequest.Email);
@@ -106,7 +106,7 @@ namespace Nkolex.Propman.Tests
             storedAccount.EmailConfirmationTokenExpiresAt = DateTime.UtcNow.AddHours(-1);
             await _accountDataService.UpdateAsync(storedAccount);
 
-            var result = await _accountService.ConfirmEmailAsync(createAccountRequest.Email, storedAccount.EmailConfirmationToken!);
+            var result = await _accountService.ConfirmEmailAsync(storedAccount.EmailConfirmationToken!);
 
             Assert.False(result);
         }
