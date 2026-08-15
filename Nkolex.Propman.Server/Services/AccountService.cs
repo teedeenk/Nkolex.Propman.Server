@@ -74,47 +74,49 @@ namespace Nkolex.Propman.Server.Services
             return response;
         }
 
-        public async Task<bool> ConfirmEmailAsync(string email, string token)
+        public async Task<bool> ConfirmEmailAsync(string token)
         {
-            if (string.IsNullOrWhiteSpace(email))
+            try
             {
-                throw new ArgumentNullException(nameof(email));
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    throw new ArgumentNullException(nameof(token));
+                }
+
+                using var scope = _serviceProvider.CreateScope();
+                var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
+
+                var account = await dataService.GetByEmailConfirmationTokenAsync(token);
+                if (account == null)
+                {
+                    return false;
+                }
+
+                if (account.EmailConfirmed)
+                {
+                    return true;
+                }
+
+                if (account.EmailConfirmationTokenExpiresAt == null ||
+                    account.EmailConfirmationTokenExpiresAt < DateTime.UtcNow)
+                {
+                    return false;
+                }
+
+                account.EmailConfirmed = true;
+                account.EmailConfirmationToken = null;
+                account.EmailConfirmationTokenExpiresAt = null;
+                account.UpdatedAt = DateTime.UtcNow;
+
+                var update = await dataService.UpdateAsync(account);
+                return update != 0;
+
             }
-
-            if (string.IsNullOrWhiteSpace(token))
+            catch (Exception ex)
             {
-                throw new ArgumentNullException(nameof(token));
-            }
-
-            using var scope = _serviceProvider.CreateScope();
-            var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
-
-            var accounts = await dataService.GetAllAsync();
-            var account = accounts.FirstOrDefault(a => a.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
-            if (account == null)
-            {
+                _logger.LogError(ex, "Error confirming email with token {Token}", token);
                 return false;
             }
-
-            if (account.EmailConfirmed)
-            {
-                return true;
-            }
-
-            if (!string.Equals(account.EmailConfirmationToken, token, StringComparison.Ordinal) ||
-                account.EmailConfirmationTokenExpiresAt == null ||
-                account.EmailConfirmationTokenExpiresAt < DateTime.UtcNow)
-            {
-                return false;
-            }
-
-            account.EmailConfirmed = true;
-            account.EmailConfirmationToken = null;
-            account.EmailConfirmationTokenExpiresAt = null;
-            account.UpdatedAt = DateTime.UtcNow;
-
-            var update = await dataService.UpdateAsync(account);
-            return update != 0;
         }
 
         public async Task<bool> ApproveUser(IAccount account)

@@ -31,14 +31,13 @@ namespace Nkolex.Propman.Server.Controllers
         }
 
         [HttpGet("confirm-email")]
-        public async Task<IActionResult> ConfirmEmail([FromQuery] string email, [FromQuery] string token)
+        public async Task<IActionResult> ConfirmEmail([FromQuery] string token)
         {
-            var confirmed = await _accountService.ConfirmEmailAsync(email, token);
+            var confirmed = await _accountService.ConfirmEmailAsync(token);
             if (!confirmed)
             {
                 return BadRequest(new { message = "Invalid or expired email confirmation token." });
             }
-
             return Ok(new { message = "Email confirmed successfully." });
         }
 

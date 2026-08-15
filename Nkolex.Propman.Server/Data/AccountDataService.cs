@@ -16,6 +16,26 @@ namespace Nkolex.Propman.Server.Data
             _logger = logger;
             _repo = repo;
         }
+
+        public async Task<IAccount> GetByEmailConfirmationTokenAsync(string token)
+        {
+            var accounts = await _repo.GetAllAsync();
+            try
+            {
+                if (accounts != null) 
+                {
+                    return accounts.FirstOrDefault
+                    (x => x.EmailConfirmationToken == token) ??
+                    throw new ArgumentNullException($"{token}, not found.");
+                }
+                throw new ArgumentNullException($"{token}, not found.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("The following error occured: {ex}", ex.Message);
+                return _serviceProvider.GetRequiredService<IAccount>();
+            }
+        }
         public async Task<int> AddAsync(IAccount entity)
         {
             if (entity == null)

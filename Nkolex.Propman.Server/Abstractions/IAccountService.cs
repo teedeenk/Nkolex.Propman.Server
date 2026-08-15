@@ -6,6 +6,6 @@
         Task<bool> ApproveUser(IAccount account);
         Task<bool> UpdateUserAsync(IAccount account);
         Task<List<IAccount>> GetAllUsersAsync();
-        Task<bool> ConfirmEmailAsync(string email, string token);
+        Task<bool> ConfirmEmailAsync(string token);
     }
 }
