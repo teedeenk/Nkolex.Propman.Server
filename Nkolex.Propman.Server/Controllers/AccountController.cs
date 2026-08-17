@@ -41,6 +41,15 @@ namespace Nkolex.Propman.Server.Controllers
             return Ok(new { message = "Email confirmed successfully." });
         }
 
+        [HttpPost("resend-confirmation-email")]
+        public async Task<IActionResult> ResendConfirmationEmail([FromBody] ResendConfirmationRequest request)
+        {
+            await _accountService.ResendConfirmationEmailAsync(request.Email);
+
+            return Ok(new { message = "If an account with that email exists and isn't confirmed yet, a new confirmation email has been sent." });
+        }
+
+        public record ResendConfirmationRequest(string Email);
         [Authorize(Roles = $"{UserRoles.Admin}, {UserRoles.PropertyManager}")]
         [HttpPut("approve")]
         public async Task<IActionResult> ApproveUser([FromBody] Account account)

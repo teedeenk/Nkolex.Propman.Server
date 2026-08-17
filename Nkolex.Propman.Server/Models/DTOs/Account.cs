@@ -21,5 +21,6 @@ namespace Nkolex.Propman.Server.Models.DTOs
         public bool EmailConfirmed { get; set; }
         public string? EmailConfirmationToken { get; set; }
         public DateTime? EmailConfirmationTokenExpiresAt { get; set; }
+        public DateTime? EmailConfirmationTokenIssuedAt { get; set; }
     }
 }

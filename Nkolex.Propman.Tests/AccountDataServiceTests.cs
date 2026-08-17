@@ -83,6 +83,76 @@ namespace Nkolex.Propman.Tests
             Assert.Equal(1, sud);
         }
 
+        [Fact]
+        public async Task Given_ValidToken_GetByEmailConfirmationTokenAsync_Should_Return_Account()
+        {
+            var account = CreateTestAccount();
+            account.EmailConfirmationToken = Guid.NewGuid().ToString("N");
+
+            _repo = Substitute.For<IRepository<IAccount>>();
+            _repo.GetAllAsync().Returns([account]);
+
+            var logger = Substitute.For<ILogger<AccountDataService<IAccount>>>();
+            var serviceProvider = Substitute.For<IServiceProvider>();
+
+            var accountService = new AccountDataService<IAccount>(serviceProvider, logger, _repo);
+
+            var result = await accountService.GetByEmailConfirmationTokenAsync(account.EmailConfirmationToken);
+
+            Assert.NotNull(result);
+            Assert.Equal(account.Email, result.Email);
+            Assert.Equal(account.EmailConfirmationToken, result.EmailConfirmationToken);
+        }
+
+        [Fact]
+        public async Task Given_InvalidToken_GetByEmailConfirmationTokenAsync_Should_Not_Match()
+        {
+            var account = CreateTestAccount();
+            _repo = Substitute.For<IRepository<IAccount>>();
+            _repo.GetAllAsync().Returns([account]);
+
+            var logger = Substitute.For<ILogger<AccountDataService<IAccount>>>();
+            var serviceProvider = Factory.Services;
+
+            var accountService = new AccountDataService<IAccount>(serviceProvider, logger, _repo);
+
+            var result = await accountService.GetByEmailConfirmationTokenAsync("invalid-token");
+
+            Assert.NotNull(result);
+            // When token is not found, it returns a default account instance
+            Assert.NotEqual(account.Email, result.Email);
+        }
+
+        [Fact]
+        public async Task Given_NoAccounts_GetByEmailConfirmationTokenAsync_Should_Return_Default()
+        {
+            var accounts = new List<IAccount>();
+            _repo = Substitute.For<IRepository<IAccount>>();
+            _repo.GetAllAsync().Returns(accounts);
+
+            var logger = Substitute.For<ILogger<AccountDataService<IAccount>>>();
+            var accountService = new AccountDataService<IAccount>(Factory.Services, logger, _repo);
+
+            var result = await accountService.GetByEmailConfirmationTokenAsync("any-token");
+
+            Assert.NotNull(result);
+            // When no accounts exist and token not found, returns default account
+        }
+
+        [Fact]
+        public async Task Given_Account_DeleteAsync_Should_Throw_NotImplementedException()
+        {
+            var account = CreateTestAccount();
+            _repo = Substitute.For<IRepository<IAccount>>();
+
+            var logger = Substitute.For<ILogger<AccountDataService<IAccount>>>();
+            var serviceProvider = Substitute.For<IServiceProvider>();
+
+            var accountService = new AccountDataService<IAccount>(serviceProvider, logger, _repo);
+
+            await Assert.ThrowsAsync<NotImplementedException>(() => accountService.DeleteAsync(account));
+        }
+
         private IAccount CreateTestAccount()
         {
             var account = Factory.Services.GetRequiredService<IAccount>();

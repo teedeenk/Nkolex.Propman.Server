@@ -211,5 +211,42 @@ namespace Nkolex.Propman.Server.Services
             };
             return account;
         }
+
+        public async Task ResendConfirmationEmailAsync(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                throw new ArgumentNullException(nameof(email));
+            }
+
+            using var scope = _serviceProvider.CreateScope();
+            var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
+            var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+
+            var accounts = await dataService.GetAllAsync();
+            var account = accounts.FirstOrDefault(a => a.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+
+            if (account == null || account.EmailConfirmed)
+            {
+                return;
+            }
+
+            if (account.EmailConfirmationTokenExpiresAt != null)
+            {
+                var tokenIssuedAt = account.EmailConfirmationTokenExpiresAt.Value.AddHours(-24); 
+                if (DateTime.UtcNow - tokenIssuedAt < TimeSpan.FromSeconds(60))
+                {
+                    return; 
+                }
+            }
+
+            account.EmailConfirmationToken = Guid.NewGuid().ToString("N");
+            account.EmailConfirmationTokenExpiresAt = DateTime.UtcNow.AddHours(24);
+            account.UpdatedAt = DateTime.UtcNow;
+
+            await dataService.UpdateAsync(account);
+
+            await emailService.SendEmailConfirmationAsync(account.Email, account.EmailConfirmationToken);
+        }
     }
 }

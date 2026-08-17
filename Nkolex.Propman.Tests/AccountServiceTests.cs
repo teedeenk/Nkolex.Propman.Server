@@ -227,6 +227,134 @@ namespace Nkolex.Propman.Tests
             Assert.Contains(result, a => a.Id == accountTwo.Id);
         }
 
+        [Fact]
+        public async Task Given_ValidEmail_And_Expired_Token_ResendConfirmationEmailAsync_Should_Generate_New_Token()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
+            var originalToken = storedAccount.EmailConfirmationToken;
+
+            storedAccount.EmailConfirmationTokenExpiresAt = DateTime.UtcNow.AddHours(-1);
+            await _accountDataService.UpdateAsync(storedAccount);
+
+            await _accountService!.ResendConfirmationEmailAsync(createAccountRequest.Email);
+
+            var updatedAccounts = await _accountDataService.GetAllAsync();
+            var updatedAccount = updatedAccounts.First(a => a.Email == createAccountRequest.Email);
+
+            Assert.NotNull(updatedAccount.EmailConfirmationToken);
+            Assert.NotEqual(originalToken, updatedAccount.EmailConfirmationToken);
+        }
+
+        [Fact]
+        public async Task Given_ValidEmail_ResendConfirmationEmailAsync_Should_Send_Email()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
+
+            storedAccount.EmailConfirmationTokenExpiresAt = DateTime.UtcNow.AddHours(-2);
+            await _accountDataService.UpdateAsync(storedAccount);
+
+            _emailService.SentConfirmations.Clear();
+
+            await _accountService!.ResendConfirmationEmailAsync(createAccountRequest.Email);
+
+            var updatedAccounts = await _accountDataService.GetAllAsync();
+            var updatedAccount = updatedAccounts.First(a => a.Email == createAccountRequest.Email);
+
+            Assert.Contains(_emailService.SentConfirmations, sent => 
+                sent.Email == createAccountRequest.Email && 
+                sent.Token == updatedAccount.EmailConfirmationToken);
+        }
+
+        [Fact]
+        public async Task Given_NullEmail_ResendConfirmationEmailAsync_Should_ThrowException()
+        {
+            await Assert.ThrowsAsync<ArgumentNullException>(() => 
+                _accountService!.ResendConfirmationEmailAsync(null!));
+        }
+
+        [Fact]
+        public async Task Given_EmptyEmail_ResendConfirmationEmailAsync_Should_ThrowException()
+        {
+            await Assert.ThrowsAsync<ArgumentNullException>(() => 
+                _accountService!.ResendConfirmationEmailAsync(""));
+        }
+
+        [Fact]
+        public async Task Given_NonexistentEmail_ResendConfirmationEmailAsync_Should_Return()
+        {
+            await _accountService!.ResendConfirmationEmailAsync("nonexistent@example.com");
+
+            Assert.True(true);
+        }
+
+        [Fact]
+        public async Task Given_ConfirmedEmail_ResendConfirmationEmailAsync_Should_Return()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
+
+            await _accountService!.ConfirmEmailAsync(storedAccount.EmailConfirmationToken!);
+
+            _emailService.SentConfirmations.Clear();
+
+            await _accountService!.ResendConfirmationEmailAsync(createAccountRequest.Email);
+
+            Assert.DoesNotContain(_emailService.SentConfirmations, sent => 
+                sent.Email == createAccountRequest.Email);
+        }
+
+        [Fact]
+        public async Task Given_TokenWithinRateLimit_ResendConfirmationEmailAsync_Should_NotResend()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
+
+            _emailService.SentConfirmations.Clear();
+            var sentCountAfterFirstRequest = _emailService.SentConfirmations.Count;
+
+            await _accountService!.ResendConfirmationEmailAsync(createAccountRequest.Email);
+
+            Assert.Equal(sentCountAfterFirstRequest, _emailService.SentConfirmations.Count);
+        }
+
+        [Fact]
+        public async Task Given_ExpiredToken_ResendConfirmationEmailAsync_Should_Generate_New_Token()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
+
+            storedAccount.EmailConfirmationTokenExpiresAt = DateTime.UtcNow.AddHours(-2);
+            await _accountDataService.UpdateAsync(storedAccount);
+
+            _emailService.SentConfirmations.Clear();
+
+            await _accountService!.ResendConfirmationEmailAsync(createAccountRequest.Email);
+
+            var updatedAccounts = await _accountDataService.GetAllAsync();
+            var updatedAccount = updatedAccounts.First(a => a.Email == createAccountRequest.Email);
+
+            Assert.Contains(_emailService.SentConfirmations, sent => 
+                sent.Email == createAccountRequest.Email && 
+                sent.Token == updatedAccount.EmailConfirmationToken);
+        }
+
         private IAccount CreateAccount()
         {
             var account = Factory.Services.GetRequiredService<IAccount>();
