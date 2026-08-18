@@ -36,5 +36,29 @@ namespace Nkolex.Propman.Server.Services
 
             return new EmailContent("Confirm your email address", html, text);
         }
+
+        public EmailContent BuildPasswordResetEmail(string resetLink)
+        {
+            var layout = _loader.Load("Layout.html");
+            var body = _loader.Load("ResetPassword.html");
+
+            body = TemplateRenderer.Render(body, new Dictionary<string, string>
+            {
+                ["ResetLink"] = resetLink,
+                ["ExpiryHours"] = "24"
+            });
+
+            var html = TemplateRenderer.Render(layout, new Dictionary<string, string>
+            {
+                ["BODY"] = body,
+                ["AppName"] = _configuration["Email:AppName"] ?? "",
+                ["LogoUrl"] = _configuration["Email:LogoUrl"] ?? "",
+                ["Year"] = DateTime.UtcNow.Year.ToString()
+            });
+
+            var text = $"Reset your password by visiting: {resetLink}";
+
+            return new EmailContent("Reset your password", html, text);
+        }
     }
 }

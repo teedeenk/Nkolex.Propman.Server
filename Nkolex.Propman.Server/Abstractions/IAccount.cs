@@ -22,5 +22,8 @@ namespace Nkolex.Propman.Server.Abstractions
         string? EmailConfirmationToken { get; set; }
         DateTime? EmailConfirmationTokenExpiresAt { get; set; }
         DateTime? EmailConfirmationTokenIssuedAt { get; set; }
+        string? PasswordResetToken { get; set; }
+        DateTime? PasswordResetTokenExpiresAt { get; set; }
+        DateTime? PasswordResetTokenIssuedAt { get; set; }
     }
 }

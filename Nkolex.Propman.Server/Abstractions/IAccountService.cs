@@ -8,5 +8,7 @@
         Task<List<IAccount>> GetAllUsersAsync();
         Task<bool> ConfirmEmailAsync(string token);
         Task ResendConfirmationEmailAsync(string email);
+        Task ForgotPasswordAsync(string email);
+        Task<bool> ResetPasswordAsync(string token, string newPassword);
     }
 }

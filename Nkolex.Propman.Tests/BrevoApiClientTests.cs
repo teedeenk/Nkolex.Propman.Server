@@ -165,15 +165,11 @@ namespace Nkolex.Propman.Tests
             Assert.Contains(email, requestBody);
             Assert.Contains(toName, requestBody);
             Assert.Contains(subject, requestBody);
-            // HTML content will be escaped in JSON, so check for escaped version
             Assert.Contains("Test", requestBody);
             Assert.Contains(textContent, requestBody);
         }
     }
 
-    /// <summary>
-    /// Mock HTTP message handler for testing BrevoApiClient without making real HTTP calls
-    /// </summary>
     internal class MockHttpMessageHandler : HttpMessageHandler
     {
         private readonly HttpStatusCode _statusCode;

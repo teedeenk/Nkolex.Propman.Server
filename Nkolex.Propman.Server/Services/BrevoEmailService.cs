@@ -39,5 +39,20 @@ namespace Nkolex.Propman.Server.Services
 
             _logger.LogInformation("Email confirmation sent to {Email}", email);
         }
+
+        public async Task SendPasswordResetEmailAsync(string email, string token)
+        {
+            if (string.IsNullOrWhiteSpace(email)) throw new ArgumentNullException(nameof(email));
+            if (string.IsNullOrWhiteSpace(token)) throw new ArgumentNullException(nameof(token));
+
+            var resetLink =
+                $"{_appOptions.BaseUrl}/reset-password?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
+
+            var content = _templates.BuildPasswordResetEmail(resetLink);
+
+            await _brevoClient.SendTransactionalEmailAsync(email, toName: null, content);
+
+            _logger.LogInformation("Password reset email sent to {Email}", email);
+        }
     }
 }

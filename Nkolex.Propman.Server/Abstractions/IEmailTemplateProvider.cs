@@ -5,5 +5,6 @@
     public interface IEmailTemplateProvider
     {
         EmailContent BuildConfirmationEmail(string confirmationLink);
+        EmailContent BuildPasswordResetEmail(string resetLink);
     }
 }

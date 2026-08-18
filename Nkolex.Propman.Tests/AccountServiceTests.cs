@@ -390,5 +390,159 @@ namespace Nkolex.Propman.Tests
             return createAccountResponse;
         }
 
+        [Fact]
+        public async Task Given_ValidEmail_ForgotPasswordAsync_Should_GeneratePasswordResetToken()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
+            var initialToken = storedAccount.PasswordResetToken;
+
+            _emailService.SentPasswordResets.Clear();
+
+            await _accountService!.ForgotPasswordAsync(createAccountRequest.Email);
+
+            var updatedAccounts = await _accountDataService.GetAllAsync();
+            var updatedAccount = updatedAccounts.First(a => a.Email == createAccountRequest.Email);
+
+            Assert.NotNull(updatedAccount.PasswordResetToken);
+            Assert.NotEqual(initialToken, updatedAccount.PasswordResetToken);
+            Assert.NotNull(updatedAccount.PasswordResetTokenExpiresAt);
+            Assert.Contains(_emailService.SentPasswordResets, sent => 
+                sent.Email == createAccountRequest.Email && 
+                sent.Token == updatedAccount.PasswordResetToken);
+        }
+
+        [Fact]
+        public async Task Given_NonExistentEmail_ForgotPasswordAsync_Should_NotThrow()
+        {
+            _emailService.SentPasswordResets.Clear();
+
+            await _accountService!.ForgotPasswordAsync("nonexistent@example.com");
+
+            Assert.Empty(_emailService.SentPasswordResets);
+        }
+
+        [Fact]
+        public async Task Given_TokenWithinRateLimit_ForgotPasswordAsync_Should_NotResend()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            _emailService.SentPasswordResets.Clear();
+
+            await _accountService!.ForgotPasswordAsync(createAccountRequest.Email);
+            var sentCountAfterFirstRequest = _emailService.SentPasswordResets.Count;
+
+            await _accountService!.ForgotPasswordAsync(createAccountRequest.Email);
+
+            Assert.Equal(sentCountAfterFirstRequest, _emailService.SentPasswordResets.Count);
+        }
+
+        [Fact]
+        public async Task Given_ExpiredToken_ForgotPasswordAsync_Should_GenerateNewToken()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
+
+            storedAccount.PasswordResetTokenExpiresAt = DateTime.UtcNow.AddHours(-2);
+            await _accountDataService.UpdateAsync(storedAccount);
+
+            _emailService.SentPasswordResets.Clear();
+
+            await _accountService!.ForgotPasswordAsync(createAccountRequest.Email);
+
+            var updatedAccounts = await _accountDataService.GetAllAsync();
+            var updatedAccount = updatedAccounts.First(a => a.Email == createAccountRequest.Email);
+
+            Assert.Contains(_emailService.SentPasswordResets, sent => 
+                sent.Email == createAccountRequest.Email && 
+                sent.Token == updatedAccount.PasswordResetToken);
+        }
+
+        [Fact]
+        public async Task Given_ValidToken_ResetPasswordAsync_Should_UpdatePassword()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
+
+            await _accountService!.ForgotPasswordAsync(createAccountRequest.Email);
+
+            var updatedAccounts = await _accountDataService.GetAllAsync();
+            var accountWithToken = updatedAccounts.First(a => a.Email == createAccountRequest.Email);
+
+            var newPassword = "NewPassword456!";
+            var result = await _accountService!.ResetPasswordAsync(accountWithToken.PasswordResetToken!, newPassword);
+
+            Assert.True(result);
+            var finalAccounts = await _accountDataService.GetAllAsync();
+            var finalAccount = finalAccounts.First(a => a.Email == createAccountRequest.Email);
+
+            Assert.Null(finalAccount.PasswordResetToken);
+            Assert.Null(finalAccount.PasswordResetTokenExpiresAt);
+
+            var passwordHasher = new Pbkdf2PasswordHasher();
+            Assert.True(passwordHasher.VerifyPassword(finalAccount.Password, newPassword));
+        }
+
+        [Fact]
+        public async Task Given_InvalidToken_ResetPasswordAsync_Should_ReturnFalse()
+        {
+            var result = await _accountService!.ResetPasswordAsync("invalid-token", "NewPassword456!");
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task Given_ExpiredToken_ResetPasswordAsync_Should_ReturnFalse()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            await _accountService!.ForgotPasswordAsync(createAccountRequest.Email);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
+
+            storedAccount.PasswordResetTokenExpiresAt = DateTime.UtcNow.AddHours(-1);
+            await _accountDataService.UpdateAsync(storedAccount);
+
+            var result = await _accountService!.ResetPasswordAsync(storedAccount.PasswordResetToken!, "NewPassword456!");
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task Given_NullToken_ResetPasswordAsync_Should_ReturnFalse()
+        {
+            var result = await _accountService!.ResetPasswordAsync("", "NewPassword456!");
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task Given_NullPassword_ResetPasswordAsync_Should_ReturnFalse()
+        {
+            var createAccountRequest = CreateTestAccountRequest();
+            await _accountService!.AddUserAsync(createAccountRequest);
+
+            await _accountService!.ForgotPasswordAsync(createAccountRequest.Email);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            var storedAccount = accounts.First(a => a.Email == createAccountRequest.Email);
+
+            var result = await _accountService!.ResetPasswordAsync(storedAccount.PasswordResetToken!, "");
+
+            Assert.False(result);
+        }
+
     }
 }

@@ -248,5 +248,83 @@ namespace Nkolex.Propman.Server.Services
 
             await emailService.SendEmailConfirmationAsync(account.Email, account.EmailConfirmationToken);
         }
+
+        public async Task ForgotPasswordAsync(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                throw new ArgumentNullException(nameof(email));
+            }
+
+            using var scope = _serviceProvider.CreateScope();
+            var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
+            var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+
+            var accounts = await dataService.GetAllAsync();
+            var account = accounts.FirstOrDefault(a => a.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+
+            if (account == null)
+            {
+                return;
+            }
+
+            if (account.PasswordResetTokenExpiresAt != null)
+            {
+                var tokenIssuedAt = account.PasswordResetTokenExpiresAt.Value.AddHours(-24);
+                if (DateTime.UtcNow - tokenIssuedAt < TimeSpan.FromSeconds(60))
+                {
+                    return;
+                }
+            }
+
+            account.PasswordResetToken = Guid.NewGuid().ToString("N");
+            account.PasswordResetTokenExpiresAt = DateTime.UtcNow.AddHours(24);
+            account.PasswordResetTokenIssuedAt = DateTime.UtcNow;
+            account.UpdatedAt = DateTime.UtcNow;
+
+            await dataService.UpdateAsync(account);
+
+            await emailService.SendPasswordResetEmailAsync(account.Email, account.PasswordResetToken);
+        }
+
+        public async Task<bool> ResetPasswordAsync(string token, string newPassword)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(newPassword))
+                {
+                    throw new ArgumentNullException("Token and password cannot be null or empty");
+                }
+
+                using var scope = _serviceProvider.CreateScope();
+                var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
+
+                var account = await dataService.GetByPasswordResetTokenAsync(token);
+                if (account == null || account.Id == Guid.Empty)
+                {
+                    return false;
+                }
+
+                if (account.PasswordResetTokenExpiresAt == null ||
+                    account.PasswordResetTokenExpiresAt < DateTime.UtcNow)
+                {
+                    return false;
+                }
+
+                account.Password = _passwordHasher.HashPassword(newPassword);
+                account.PasswordResetToken = null;
+                account.PasswordResetTokenExpiresAt = null;
+                account.PasswordResetTokenIssuedAt = null;
+                account.UpdatedAt = DateTime.UtcNow;
+
+                var update = await dataService.UpdateAsync(account);
+                return update != 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resetting password with token {Token}", token);
+                return false;
+            }
+        }
     }
 }

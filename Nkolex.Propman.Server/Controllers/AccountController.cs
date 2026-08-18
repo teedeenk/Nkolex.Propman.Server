@@ -49,7 +49,35 @@ namespace Nkolex.Propman.Server.Controllers
             return Ok(new { message = "If an account with that email exists and isn't confirmed yet, a new confirmation email has been sent." });
         }
 
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            await _accountService.ForgotPasswordAsync(request.Email);
+
+            return Ok(new { message = "If an account with that email exists, a password reset email has been sent." });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Token) ||
+                string.IsNullOrWhiteSpace(request.NewPassword) ||
+                request.NewPassword != request.ConfirmPassword)
+            {
+                return BadRequest(new { message = "Invalid request. Token and matching passwords are required." });
+            }
+
+            var result = await _accountService.ResetPasswordAsync(request.Token, request.NewPassword);
+            if (!result)
+            {
+                return BadRequest(new { message = "Invalid or expired password reset token." });
+            }
+
+            return Ok(new { message = "Password reset successfully." });
+        }
+
         public record ResendConfirmationRequest(string Email);
+        public record ForgotPasswordRequest(string Email);
         [Authorize(Roles = $"{UserRoles.Admin}, {UserRoles.PropertyManager}")]
         [HttpPut("approve")]
         public async Task<IActionResult> ApproveUser([FromBody] Account account)
