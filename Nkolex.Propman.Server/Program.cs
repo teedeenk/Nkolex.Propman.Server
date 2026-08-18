@@ -192,10 +192,6 @@ namespace Nkolex.Propman.Server
                 var passwordHasher = migrationScope.ServiceProvider.GetRequiredService<IPasswordHasher>();
                 var passwordHashMigrator = new PasswordHashMigrator(accountDataService, passwordHasher);
                 passwordHashMigrator.MigrateAsync().GetAwaiter().GetResult();
-
-                // TODO: Remove after running once in production to confirm all existing accounts' emails.
-                var emailConfirmationMigrator = new EmailConfirmationMigrator(accountDataService);
-                emailConfirmationMigrator.MigrateAsync().GetAwaiter().GetResult();
             }
 
             if (app.Environment.IsDevelopment())
