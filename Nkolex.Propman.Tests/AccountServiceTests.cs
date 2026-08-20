@@ -544,5 +544,17 @@ namespace Nkolex.Propman.Tests
             Assert.False(result);
         }
 
+        [Fact]
+        public async Task Given_ValidAccount_DeleteUserAsync_Should_RemoveAccount()
+        {
+            var account = CreateAccount();
+            await _accountDataService.AddAsync(account);
+
+            var result = await _accountService!.DeleteUserAsync(account);
+            Assert.True(result);
+
+            var accounts = await _accountDataService.GetAllAsync();
+            Assert.DoesNotContain(accounts, a => a.Id == account.Id);
+        }
     }
 }

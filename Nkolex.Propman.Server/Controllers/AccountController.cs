@@ -119,5 +119,29 @@ namespace Nkolex.Propman.Server.Controllers
             var accounts = await _accountService.GetAllUsersAsync();
             return Ok(accounts);
         }
+
+        [Authorize(Roles = $"{UserRoles.Admin}")]
+        [HttpDelete("delete")]
+        public async Task<IActionResult> DeleteUser([FromBody] Account account)
+        {
+            try
+            {
+                if (account == null || account.Id == Guid.Empty)
+                {
+                    return BadRequest(new { message = "Invalid account data. Account ID is required." });
+                }
+
+                var result = await _accountService.DeleteUserAsync(account);
+                if (!result)
+                {
+                    return NotFound(new { message = "User not found." });
+                }
+                return Ok(new { message = "User deleted successfully." });
+            }
+            catch (ArgumentException)
+            {
+                return BadRequest(new { message = "Invalid account data." });
+            }
+        }
     }
 }

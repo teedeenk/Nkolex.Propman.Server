@@ -84,9 +84,29 @@ namespace Nkolex.Propman.Server.Data
             }
         }
 
-        public Task<int> DeleteAsync(IAccount entity)
+        public async Task<int> DeleteAsync(IAccount entity)
         {
-            throw new NotImplementedException();
+            if (entity == null)
+            {
+                throw new ArgumentNullException(nameof(entity), "Account entity cannot be null");
+            }
+
+            if (entity.Id == Guid.Empty)
+            {
+                throw new ArgumentException("Account must have a valid Id", nameof(entity));
+            }
+
+            try
+            {
+                var result = await _repo.DeleteAsync(entity);
+                _logger.LogInformation("Account deleted");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("The following error occurred: {ex}", ex.Message);
+                return 0;
+            }
         }
 
         public async Task<List<IAccount>> GetAllAsync()

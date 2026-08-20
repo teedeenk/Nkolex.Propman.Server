@@ -286,7 +286,97 @@ namespace Nkolex.Propman.Server.Data.Repositories
             }
         }
 
-        public Task<int> DeleteAsync(T entity) => throw new NotImplementedException();
+        public async Task<int> DeleteAsync(T entity)
+        {
+            if (entity == null)
+            {
+                throw new ArgumentNullException(nameof(entity), "Entity cannot be null.");
+            }
+
+            await _semaphore.WaitAsync();
+            try
+            {
+                var tableName = _tables.ResolveNameFor(typeof(T));
+                var tIsInterface = typeof(T).IsInterface;
+
+                if (!File.Exists(_filePath))
+                {
+                    _logger.LogWarning("Flat file does not exist. Cannot delete entity from table {Table}.", tableName);
+                    return 0;
+                }
+
+                var fileText = await ReadFileTextAsync();
+                if (string.IsNullOrWhiteSpace(fileText))
+                {
+                    _logger.LogWarning("Flat file is empty. Cannot delete entity from table {Table}.", tableName);
+                    return 0;
+                }
+
+                JsonObject rootObj;
+                try
+                {
+                    var parsed = JsonNode.Parse(fileText);
+                    rootObj = parsed as JsonObject ?? [];
+                }
+                catch (JsonException)
+                {
+                    _logger.LogWarning("Flat file JSON invalid; cannot delete entity from table {Table}.", tableName);
+                    return 0;
+                }
+
+                if (!rootObj.TryGetPropertyValue(tableName, out var existingNode) || existingNode == null)
+                {
+                    _logger.LogWarning("Table {Table} not found in flat file. Cannot delete entity.", tableName);
+                    return 0;
+                }
+
+                var arrayText = existingNode.ToJsonString();
+                var existingListForTable = DeserializeListFromJsonArray(arrayText, _jsonOptions, tIsInterface, _concreteTypeResolver);
+
+                if (existingListForTable.Count == 0)
+                {
+                    _logger.LogWarning("No entities found in table {Table}. Cannot delete entity.", tableName);
+                    return 0;
+                }
+
+                var indexToDelete = -1;
+                for (int i = 0; i < existingListForTable.Count; i++)
+                {
+                    if (AreEntitiesEqual(existingListForTable[i], entity))
+                    {
+                        indexToDelete = i;
+                        break;
+                    }
+                }
+
+                if (indexToDelete == -1)
+                {
+                    _logger.LogWarning("Entity not found in table {Table}. Cannot delete.", tableName);
+                    return 0;
+                }
+
+                existingListForTable.RemoveAt(indexToDelete);
+
+                _dataStore.TableName = tableName;
+                _dataStore.Data = existingListForTable;
+
+                rootObj[tableName] = JsonSerializer.SerializeToNode(existingListForTable, _jsonOptions);
+
+                await WriteFileTextAsync(rootObj.ToJsonString(options: _jsonOptions));
+
+                _logger.LogInformation("Entity deleted from table {Table}.", tableName);
+                return 1;
+            }
+            catch (JsonException jsEx)
+            {
+                _logger.LogError(jsEx, "Couldn't delete entity from file.");
+                throw;
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
 
         public async Task<List<T>> GetAllAsync()
         {

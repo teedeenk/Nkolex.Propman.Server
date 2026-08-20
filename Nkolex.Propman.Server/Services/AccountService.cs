@@ -326,5 +326,24 @@ namespace Nkolex.Propman.Server.Services
                 return false;
             }
         }
+
+        public async Task<bool> DeleteUserAsync(IAccount account)
+        {
+            if (account == null)
+            {
+                throw new ArgumentNullException(nameof(account), "Account cannot be null");
+            }
+
+            if (account.Id == Guid.Empty)
+            {
+                throw new ArgumentException("Account must have a valid Id", nameof(account));
+            }
+
+            using var scope = _serviceProvider.CreateScope();
+            var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
+
+            var result = await dataService.DeleteAsync(account);
+            return result != 0;
+        }
     }
 }

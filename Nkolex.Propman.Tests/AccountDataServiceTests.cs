@@ -140,17 +140,20 @@ namespace Nkolex.Propman.Tests
         }
 
         [Fact]
-        public async Task Given_Account_DeleteAsync_Should_Throw_NotImplementedException()
+        public async Task Given_Account_DeleteAsync_Should_Delete_Account()
         {
             var account = CreateTestAccount();
-            _repo = Substitute.For<IRepository<IAccount>>();
+            var substitutedRepo = Substitute.For<IRepository<IAccount>>();
+            substitutedRepo.DeleteAsync(account).Returns(1);
 
             var logger = Substitute.For<ILogger<AccountDataService<IAccount>>>();
             var serviceProvider = Substitute.For<IServiceProvider>();
 
-            var accountService = new AccountDataService<IAccount>(serviceProvider, logger, _repo);
+            var accountService = new AccountDataService<IAccount>(serviceProvider, logger, substitutedRepo);
 
-            await Assert.ThrowsAsync<NotImplementedException>(() => accountService.DeleteAsync(account));
+            var result = await accountService.DeleteAsync(account);
+            Assert.Equal(1, result);
+            await substitutedRepo.Received(1).DeleteAsync(account);
         }
 
         private IAccount CreateTestAccount()
