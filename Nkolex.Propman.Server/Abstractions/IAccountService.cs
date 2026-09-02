@@ -11,5 +11,6 @@
         Task ForgotPasswordAsync(string email);
         Task<bool> ResetPasswordAsync(string token, string newPassword);
         Task<bool> DeleteUserAsync(IAccount account);
+        Task<List<IAccount>> GetAllTenantsAsync (IProperty property);
     }
 }

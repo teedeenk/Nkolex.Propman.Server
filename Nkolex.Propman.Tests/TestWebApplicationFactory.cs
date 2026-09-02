@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Nkolex.Propman.Server.Abstractions;
-using Nkolex.Propman.Server.Models;
+using Nkolex.Propman.Server.Data;
+using Nkolex.Propman.Server.Models.DTOs;
+
 
 namespace Nkolex.Propman.Tests
 {
@@ -37,6 +39,7 @@ namespace Nkolex.Propman.Tests
 
                 services.RemoveAll<IEmailService>();
                 services.AddSingleton<IEmailService, FakeEmailService>();
+
             });
         }
     }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Nkolex.Propman.Server;
 using Nkolex.Propman.Server.Abstractions;
 using Nkolex.Propman.Server.Data;
+using Nkolex.Propman.Server.Models.DTOs;
 using Nkolex.Propman.Server.Services;
 using NSubstitute;
 using NuGet.Frameworks;
@@ -556,5 +557,42 @@ namespace Nkolex.Propman.Tests
             var accounts = await _accountDataService.GetAllAsync();
             Assert.DoesNotContain(accounts, a => a.Id == account.Id);
         }
+
+        [Fact]
+        public async Task Given_Valid_Property_Should_Return_All_Tenants()
+        {
+            var account = CreateAccount();
+
+            var property = Factory.Services.GetRequiredService<IProperty>();
+            property.Id = Guid.NewGuid();
+            property.Name = "Test Property";
+            property.Address = "123 Test St";
+            property.PropertyManager = Guid.NewGuid();
+            property.Tenants = [account.Id];
+            property.Statement = Guid.NewGuid();
+            property.PropertyType = "Residential";
+
+            account.Properties = [property.Id];
+
+            var accountDataService = Substitute.For<IAccountDataService<IAccount>>();
+            accountDataService.GetAllAsync().Returns([account]);
+
+            var services = new ServiceCollection();
+            services.AddScoped<IAccountDataService<IAccount>>(_ => accountDataService);
+            var ServiceProvider = services.BuildServiceProvider();
+
+            var accountService = new AccountService(
+                ServiceProvider,
+                Substitute.For<IPasswordHasher>(),
+                Substitute.For<IEmailService>(),
+                Substitute.For<ILogger<AccountService>>());
+
+            var sud = await accountService.GetAllTenantsAsync(property);
+
+            Assert.NotNull(sud);
+            Assert.Single(sud);
+            Assert.Equal(sud.First().Id, account.Id);
+        } 
+
     }
 }

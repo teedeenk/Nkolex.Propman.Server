@@ -345,5 +345,33 @@ namespace Nkolex.Propman.Server.Services
             var result = await dataService.DeleteAsync(account);
             return result != 0;
         }
+
+        public async Task<List<IAccount>> GetAllTenantsAsync(IProperty property)
+        {
+            if(property == null)
+            {
+                throw new ArgumentNullException(nameof(property), "Property cannot be null");
+            }
+
+            if(property.Id == Guid.Empty)
+            {
+                throw new ArgumentException("Property must have a valid Id", nameof(property));
+            }
+
+            using var scope = _serviceProvider.CreateScope();
+            var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
+
+            var accounts = await dataService.GetAllAsync();
+            var tenants = new List<IAccount>();
+            foreach (var account in accounts)
+            {
+                if (account.Properties != null && account.Properties.Contains(property.Id))
+                {
+                    tenants.Add(account);
+                }
+            }
+
+            return tenants;
+        }
     }
 }

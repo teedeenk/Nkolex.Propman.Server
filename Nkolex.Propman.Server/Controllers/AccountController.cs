@@ -143,5 +143,25 @@ namespace Nkolex.Propman.Server.Controllers
                 return BadRequest(new { message = "Invalid account data." });
             }
         }
+
+        [Authorize(Roles = $"{UserRoles.Admin}, {UserRoles.PropertyManager}")]
+        [HttpGet("tenants")]
+        public async Task<IActionResult> GetAllTenants([FromBody] Property property)
+        {
+            try
+            {
+                if (property == null || property.Id == Guid.Empty)
+                {
+                    return BadRequest(new { message = "Invalid property data. Property ID is required." });
+                }
+                var tenants = await _accountService.GetAllTenantsAsync(property);
+                return Ok(tenants);
+
+            }
+            catch (ArgumentException)
+            {
+                return BadRequest(new { message = "Invalid property data." });
+            }
+        }
     }
 }
