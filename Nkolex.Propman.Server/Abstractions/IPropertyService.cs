@@ -1,11 +1,13 @@
 ﻿using Nkolex.Propman.Server.Models;
+using Nkolex.Propman.Server.Models.DTOs;
 
 namespace Nkolex.Propman.Server.Abstractions
 {
     public interface IPropertyService
     {
-        Task<IProperty> UploadPropertyAsync(IProperty property);
-        Task<IProperty> GetByIdAsync(IProperty property);
-        Task<IProperty> UpdatePropertyAsync(IProperty property);
+        Task<PropertyResponse> UploadPropertyAsync(IProperty property);
+        Task<PropertyResponse> GetByIdAsync(IProperty property);
+        Task<PropertyResponse> UpdatePropertyAsync(IProperty property);
+        Task<List<PropertyResponse>> GetAllPropertiesAsync();
     }
 }

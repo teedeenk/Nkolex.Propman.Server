@@ -1,4 +1,5 @@
 ﻿using Nkolex.Propman.Server.Abstractions;
+using Nkolex.Propman.Server.Constants;
 using Nkolex.Propman.Server.Models;
 using Nkolex.Propman.Server.Models.DTOs;
 using System.Reflection.PortableExecutable;
@@ -175,7 +176,50 @@ namespace Nkolex.Propman.Server.Services
             existingAccount.UpdatedAt = DateTime.UtcNow;
 
             var update = await dataService.UpdateAsync(existingAccount);
+
+            if (update != 0 && existingAccount.Properties is { Count: > 0 })
+            {
+                await UpdatePropertiesForAccountAsync(scope, existingAccount);
+            }
+
             return update != 0;
+        }
+
+        private static async Task UpdatePropertiesForAccountAsync(IServiceScope scope, IAccount account)
+        {
+            var propertyDataService = scope.ServiceProvider.GetRequiredService<IPropertyDataService<IProperty>>();
+            var properties = await propertyDataService.GetAllAsync();
+
+            var isPropertyManager = account.Roles?.Contains(UserRoles.PropertyManager) ?? false;
+            var isTenant = account.Roles?.Contains(UserRoles.Tenant) ?? false;
+
+            foreach (var propertyId in account.Properties!)
+            {
+                var property = properties.FirstOrDefault(p => p.Id == propertyId);
+                if (property == null)
+                {
+                    continue;
+                }
+
+                var changed = false;
+
+                if (isPropertyManager && property.PropertyManager != account.Id)
+                {
+                    property.PropertyManager = account.Id;
+                    changed = true;
+                }
+
+                if (isTenant && !property.Tenants.Contains(account.Id))
+                {
+                    property.Tenants.Add(account.Id);
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    await propertyDataService.UpdateAsync(property);
+                }
+            }
         }
 
         public async Task<List<IAccount>> GetAllUsersAsync()

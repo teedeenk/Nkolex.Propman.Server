@@ -70,10 +70,10 @@ namespace Nkolex.Propman.Tests
             var listOfStatement = new List<Statement>();
             var dataService = Substitute.For<IUploadCsvDataService<Statement,StatementLine>>();
             dataService.GetAllAsync().Returns(Task.FromResult(listOfStatement));
-            var propertyService = Substitute.For<IPropertyService>();
+            var propertyDataService = Substitute.For<IPropertyDataService<IProperty>>();
             var httpContextaccessor = Substitute.For<IHttpContextAccessor>();
 
-            var uploadCsvService = new UploadCsvService(logger, serviceProvider, dataService, propertyService, httpContextaccessor);
+            var uploadCsvService = new UploadCsvService(logger, serviceProvider, dataService, propertyDataService, httpContextaccessor);
 
             var sud = await uploadCsvService.GetAllAsync();
             Assert.Equal([], sud);
@@ -82,7 +82,7 @@ namespace Nkolex.Propman.Tests
         [Fact]
         public async Task AddAsync_Should_Update_Property_With_Statement_Id()
         {
-            var propertyService = Factory.Services.GetRequiredService<IPropertyService>();
+            var propertyDataService = Factory.Services.GetRequiredService<IPropertyDataService<IProperty>>();
             var logger = Substitute.For<ILogger<UploadCsvService>>();
             var serviceProvider = Substitute.For<IServiceProvider>();
             var listOfStatement = new List<Statement>();
@@ -96,20 +96,20 @@ namespace Nkolex.Propman.Tests
             var httpContextaccessor = Substitute.For<IHttpContextAccessor>();
             httpContextaccessor.HttpContext.Returns(httpContext);
 
-            await propertyService.UploadPropertyAsync(property);
+            await propertyDataService.AddAsync(property);
             Assert.NotNull(property);
-            
+
             var statement = new Statement
             {
                 StatementLines = [new(DateTime.UtcNow, "Test Description", 100.00m)]
             };
 
             serviceProvider.GetService<IProperty>().Returns(property);
-            var uploadCsvService = new UploadCsvService(logger, serviceProvider, dataService, propertyService, httpContextaccessor);
+            var uploadCsvService = new UploadCsvService(logger, serviceProvider, dataService, propertyDataService, httpContextaccessor);
             var result = await uploadCsvService.AddAsync(statement);
             Assert.Equal(1, result);
-            
-            var updatedProperty = await propertyService.GetByIdAsync(property);
+
+            var updatedProperty = await propertyDataService.GetByIdAsync(property);
             Assert.NotEqual(Guid.Empty, updatedProperty.Statement);
             Assert.Equal(statement.Id, updatedProperty.Statement);
         }

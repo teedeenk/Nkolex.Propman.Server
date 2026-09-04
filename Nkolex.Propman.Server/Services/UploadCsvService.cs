@@ -10,20 +10,20 @@ namespace Nkolex.Propman.Server.Services
         private readonly ILogger<UploadCsvService> _logger;
         private readonly IServiceProvider _serviceProvider;
         private readonly IUploadCsvDataService<Statement, StatementLine> _uploadCsvDataService;
-        private readonly IPropertyService _propertyService;
+        private readonly IPropertyDataService<IProperty> _propertyDataService;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public UploadCsvService(
             ILogger<UploadCsvService> logger, 
             IServiceProvider serviceProvider, 
             IUploadCsvDataService<Statement, StatementLine> uploadCsvDataService, 
-            IPropertyService propertyService,
+            IPropertyDataService<IProperty> propertyDataService,
             IHttpContextAccessor httpContextAccessor)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
             _uploadCsvDataService = uploadCsvDataService;
-            _propertyService = propertyService;
+            _propertyDataService = propertyDataService;
             _httpContextAccessor = httpContextAccessor;
         }
         public async Task<int> AddAsync(IStatement statement)
@@ -58,10 +58,10 @@ namespace Nkolex.Propman.Server.Services
                                 {
                                     var property = _serviceProvider.GetRequiredService<IProperty>();
                                     property.Id = currentPropertyId;
-                                    var existingProperty = await _propertyService.GetByIdAsync(property);
-                                    
+                                    var existingProperty = await _propertyDataService.GetByIdAsync(property);
+
                                     existingProperty.Statement = validatedStatement.Id;
-                                    await _propertyService.UpdatePropertyAsync(existingProperty);
+                                    await _propertyDataService.UpdateAsync(existingProperty);
                                     
                                     _logger.LogInformation("Statement uploaded and linked to property {PropertyId}", currentPropertyId);
                                 }

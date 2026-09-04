@@ -22,12 +22,28 @@ namespace Nkolex.Propman.Server.Controllers
         {
             try
             {
+                property.Id = Guid.NewGuid();
                 var response = await _propertyService.UploadPropertyAsync(property);
                 return Ok();
             }
             catch 
             {
                 return StatusCode(400, new { message = "Property add failed, please try again." });
+            }
+        }
+
+        [Authorize(Roles = $"{UserRoles.Admin}")]
+        [HttpGet("properties")]
+        public async Task<ActionResult> GetAllProperties()
+        {
+            try
+            {
+                var response = await _propertyService.GetAllPropertiesAsync();
+                return Ok(response);
+            }
+            catch
+            {
+                return StatusCode(400, new { message = "Failed to retrieve properties, please try again." });
             }
         }
     }

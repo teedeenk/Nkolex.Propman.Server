@@ -15,6 +15,7 @@ namespace Nkolex.Propman.Tests
     {
         private readonly IAccountService? _accountService;
         private IAccountDataService<IAccount> _accountDataService;
+        private readonly IPropertyDataService<IProperty> _propertyDataService;
         private readonly FakeEmailService _emailService;
 
 
@@ -22,6 +23,7 @@ namespace Nkolex.Propman.Tests
         {
             _accountService = Factory.Services.GetRequiredService<IAccountService>();
             _accountDataService = Factory.Services.GetRequiredService<IAccountDataService<IAccount>>();
+            _propertyDataService = Factory.Services.GetRequiredService<IPropertyDataService<IProperty>>();
             _emailService = (FakeEmailService)Factory.Services.GetRequiredService<IEmailService>();
         }
 
@@ -166,6 +168,58 @@ namespace Nkolex.Propman.Tests
             Assert.Equal("0987654321", storedAccount.PhoneNumber);
             Assert.Equal("jane.smith@example.com", storedAccount.Email);
             Assert.Equal(account.Password, storedAccount.Password);
+        }
+
+        [Fact]
+        public async Task Given_PropertyManager_UpdateUserAsync_Should_Set_Account_As_PropertyManager()
+        {
+            var account = CreateAccount();
+            await _accountDataService.AddAsync(account);
+
+            var property = CreateProperty();
+            await _propertyDataService.AddAsync(property);
+
+            var updateRequest = Factory.Services.GetRequiredService<IAccount>();
+            updateRequest.Id = account.Id;
+            updateRequest.Name = account.Name;
+            updateRequest.Surname = account.Surname;
+            updateRequest.PhoneNumber = account.PhoneNumber;
+            updateRequest.Email = account.Email;
+            updateRequest.AgreeToTerms = account.AgreeToTerms;
+            updateRequest.Roles = [Nkolex.Propman.Server.Constants.UserRoles.PropertyManager];
+            updateRequest.Properties = [property.Id];
+
+            var result = await _accountService!.UpdateUserAsync(updateRequest);
+            Assert.True(result);
+
+            var updatedProperty = (await _propertyDataService.GetAllAsync()).First(p => p.Id == property.Id);
+            Assert.Equal(account.Id, updatedProperty.PropertyManager);
+        }
+
+        [Fact]
+        public async Task Given_Tenant_UpdateUserAsync_Should_Add_Account_As_Tenant()
+        {
+            var account = CreateAccount();
+            await _accountDataService.AddAsync(account);
+
+            var property = CreateProperty();
+            await _propertyDataService.AddAsync(property);
+
+            var updateRequest = Factory.Services.GetRequiredService<IAccount>();
+            updateRequest.Id = account.Id;
+            updateRequest.Name = account.Name;
+            updateRequest.Surname = account.Surname;
+            updateRequest.PhoneNumber = account.PhoneNumber;
+            updateRequest.Email = account.Email;
+            updateRequest.AgreeToTerms = account.AgreeToTerms;
+            updateRequest.Roles = [Nkolex.Propman.Server.Constants.UserRoles.Tenant];
+            updateRequest.Properties = [property.Id];
+
+            var result = await _accountService!.UpdateUserAsync(updateRequest);
+            Assert.True(result);
+
+            var updatedProperty = (await _propertyDataService.GetAllAsync()).First(p => p.Id == property.Id);
+            Assert.Contains(account.Id, updatedProperty.Tenants);
         }
 
         [Fact]
@@ -368,6 +422,18 @@ namespace Nkolex.Propman.Tests
             account.AgreeToTerms = true;
             account.Roles = ["Guest"];
             return account;
+        }
+        private IProperty CreateProperty()
+        {
+            var property = Factory.Services.GetRequiredService<IProperty>();
+            property.Id = Guid.NewGuid();
+            property.Name = "Test Property";
+            property.Address = "123 Test St";
+            property.PropertyManager = Guid.NewGuid();
+            property.Tenants = [];
+            property.Statement = Guid.NewGuid();
+            property.PropertyType = "Residential";
+            return property;
         }
         private ICreateAccountRequest CreateTestAccountRequest()
         {

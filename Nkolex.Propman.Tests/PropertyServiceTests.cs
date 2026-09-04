@@ -19,7 +19,9 @@ namespace Nkolex.Propman.Tests
             var property = CreateProperty();
             var sud = await _propertyService.UploadPropertyAsync(property);
             Assert.NotNull(sud);
-            Assert.Equal(property, sud);
+            Assert.Equal(property.Id, sud.Id);
+            Assert.Equal(property.Name, sud.Name);
+            Assert.Equal(property.Address, sud.Address);
         }
 
         [Fact]
@@ -52,7 +54,21 @@ namespace Nkolex.Propman.Tests
             Assert.Equal(property.Id, sud.Id);
             Assert.Equal(property.Name, sud.Name);
             Assert.Equal(property.Address, sud.Address);
-            Assert.Equal(property.PropertyManager, sud.PropertyManager);
+            Assert.Null(sud.PropertyManager);
+        }
+
+        [Fact]
+        public async Task Given_GetAllPropertiesAsync_Should_Return_All_Properties()
+        {
+            var property1 = CreateProperty();
+            var property2 = CreateProperty();
+            var property3 = CreateProperty();
+            await _propertyService.UploadPropertyAsync(property1);
+            await _propertyService.UploadPropertyAsync(property2);
+            await _propertyService.UploadPropertyAsync(property3);
+            var allProperties = await _propertyService.GetAllPropertiesAsync();
+            Assert.NotNull(allProperties);
+            Assert.True(allProperties.Count >= 3);
         }
         private IProperty CreatePropertyWithOutStatement()
         {
