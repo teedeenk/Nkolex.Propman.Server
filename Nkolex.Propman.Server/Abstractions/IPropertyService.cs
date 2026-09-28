@@ -6,7 +6,7 @@ namespace Nkolex.Propman.Server.Abstractions
     public interface IPropertyService
     {
         Task<PropertyResponse> UploadPropertyAsync(IProperty property);
-        Task<PropertyResponse> GetByIdAsync(IProperty property);
+        Task<PropertyResponse> GetByIdAsync(Guid id);
         Task<PropertyResponse> UpdatePropertyAsync(IProperty property);
         Task<List<PropertyResponse>> GetAllPropertiesAsync();
     }

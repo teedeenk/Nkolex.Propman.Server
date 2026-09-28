@@ -4,6 +4,8 @@ using Nkolex.Propman.Server.Abstractions;
 using Nkolex.Propman.Server.Constants;
 using Nkolex.Propman.Server.Models;
 using Nkolex.Propman.Server.Models.DTOs;
+using Nkolex.Propman.Server.Services;
+using System.Security.Claims;
 
 namespace Nkolex.Propman.Server.Controllers
 {
@@ -112,6 +114,26 @@ namespace Nkolex.Propman.Server.Controllers
             }
         }
 
+        [Authorize(Roles = $"{UserRoles.Admin}, {UserRoles.PropertyManager}, {UserRoles.Tenant}")]
+        [HttpPut("update-profile")]
+
+        public async Task<IActionResult> UpdateUserProfile([FromBody] Account account)
+        {
+            try
+            {
+                var result = await _accountService.UpdateUserProfileAsync(account);
+                if (!result)
+                {
+                    return NotFound(new { message = "User not found." });
+                }
+                return Ok();
+            }
+            catch (ArgumentException)
+            {
+                return BadRequest(new { message = "Invalid account data." });
+            }
+        }
+
         [Authorize(Roles = $"{UserRoles.Admin}")]
         [HttpGet]
         public async Task<IActionResult> GetAllUsers()
@@ -161,6 +183,26 @@ namespace Nkolex.Propman.Server.Controllers
             catch (ArgumentException)
             {
                 return BadRequest(new { message = "Invalid property data." });
+            }
+        }
+
+        [Authorize(Roles = $"{UserRoles.Admin}, {UserRoles.PropertyManager}, {UserRoles.Tenant}")]
+        [HttpGet("profile")]
+        public async Task<IActionResult> GetProfile([FromQuery(Name = "id")] Guid userId)
+        {
+            try
+            {
+                if (userId == Guid.Empty)
+                {
+                    return BadRequest();
+                }
+
+                var user = await _accountService.GetUserByIdAsync(userId);
+                return Ok(user);
+            }
+            catch (ArgumentException)
+            {
+                return BadRequest(new { message = "Invalid user data." });
             }
         }
     }

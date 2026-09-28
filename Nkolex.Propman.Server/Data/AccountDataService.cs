@@ -115,18 +115,11 @@ namespace Nkolex.Propman.Server.Data
             return await _repo.GetAllAsync();
         }
 
-        public async Task<IAccount> GetByIdAsync(IAccount account)
+        public async Task<IAccount> GetByIdAsync(Guid id)
         {
             try
             {
-                var accounts = await GetAllAsync();
-                var accountById = accounts.Where(x => x.Email == account.Email).FirstOrDefault();
-                if (accountById == null)
-                {
-                    return _serviceProvider.GetRequiredService<IAccount>();
-                }
-                _logger.LogInformation("account fetched");
-                return accountById;
+                return await _repo.GetByIdAsync(id);
             }
             catch
             {

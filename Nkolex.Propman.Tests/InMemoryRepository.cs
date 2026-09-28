@@ -28,9 +28,8 @@ namespace Nkolex.Propman.Tests
             return Task.FromResult(_store.Values.ToList());
         }
 
-        public Task<T> GetByIdAsync(T entity)
+        public Task<T> GetByIdAsync(Guid id)
         {
-            var id = _idSelector(entity);
             if (_store.TryGetValue(id, out var result))
             {
                 return Task.FromResult(result);

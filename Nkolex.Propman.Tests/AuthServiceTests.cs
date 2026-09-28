@@ -147,29 +147,32 @@ namespace Nkolex.Propman.Tests
         }
 
         [Fact]
-        public async Task Given_Valid_Email_GetUserByID_Should_Return_One_User()
+        public async Task Given_Valid_Id_GetUserByID_Should_Return_One_User()
         {
             var user = CreateUser();
-            
+            var accountId = Guid.NewGuid();
+
             var logger = Substitute.For<ILogger<AuthService>>();
             var configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(FakeJwtConfig())
                 .Build();
             var accountDataService = Substitute.For<IAccountDataService<IAccount>>();
-            accountDataService.GetAllAsync()
-                .Returns([new Account
+            accountDataService.GetByIdAsync(accountId)
+                .Returns(new Account
                 {
+                    Id = accountId,
                     Email = user.Email,
                     Name = "Joe",
                     Surname = "Dohn",
                     Password = "Password123!"
-                }]);
+                });
 
 
             var authService = new AuthService(logger, accountDataService, configuration, new Pbkdf2PasswordHasher());
-            var sud = await authService.GetUserByIdAsync(user.Email);
+            var sud = await authService.GetUserByIdAsync(accountId);
 
             Assert.NotNull(sud);
+            Assert.Equal(accountId, sud.Id);
             Assert.Equal(user.Email, sud.Email);
             Assert.Equal(user.FullName, sud.FullName);
             Assert.Equal(user.PasswordHash, sud.PasswordHash);

@@ -84,11 +84,11 @@ namespace Nkolex.Propman.Server.Data.Repositories
             await File.WriteAllTextAsync(_filePath, cipherText);
         }
 
-        public async Task<T> GetByIdAsync(T entity)
+        public async Task<T> GetByIdAsync(Guid id)
         {
-            if (entity == null)
+            if (id == Guid.Empty)
             {
-                throw new ArgumentNullException(nameof(entity), "Entity cannot be null.");
+                throw new ArgumentException("Id must be a valid, non-empty Guid.", nameof(id));
             }
 
             await _semaphore.WaitAsync();
@@ -139,7 +139,7 @@ namespace Nkolex.Propman.Server.Data.Repositories
 
                 foreach (var item in existingListForTable)
                 {
-                    if (AreEntitiesEqual(item, entity))
+                    if (GetEntityId(item) == id)
                     {
                         return item;
                     }
@@ -486,6 +486,19 @@ namespace Nkolex.Propman.Server.Data.Repositories
             {
                 _semaphore.Release();
             }
+        }
+
+        private static Guid GetEntityId(T entity)
+        {
+            if (entity == null) return Guid.Empty;
+
+            var idProperty = typeof(T).GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
+            if (idProperty != null && idProperty.CanRead && idProperty.PropertyType == typeof(Guid))
+            {
+                return (Guid)(idProperty.GetValue(entity) ?? Guid.Empty);
+            }
+
+            return Guid.Empty;
         }
 
         private static bool AreEntitiesEqual(T entity1, T entity2)

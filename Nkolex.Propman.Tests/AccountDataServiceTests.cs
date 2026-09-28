@@ -52,14 +52,14 @@ namespace Nkolex.Propman.Tests
         {
             var account = CreateTestAccount();
             _repo = Substitute.For<IRepository<IAccount>>();
-            _repo.GetAllAsync().Returns([account]);
+            _repo.GetByIdAsync(account.Id).Returns(account);
 
             var logger = Substitute.For<ILogger<AccountDataService<IAccount>>>();
             var serviceProvider = Substitute.For<IServiceProvider>();
 
             var accountService = new AccountDataService<IAccount>(serviceProvider, logger, _repo);
 
-            var sud = await accountService.GetByIdAsync(account);
+            var sud = await accountService.GetByIdAsync(account.Id);
 
             Assert.NotNull(sud);
             Assert.Equal(account.Email, sud.Email);

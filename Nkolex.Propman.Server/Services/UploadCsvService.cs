@@ -56,9 +56,7 @@ namespace Nkolex.Propman.Server.Services
                             {
                                 try
                                 {
-                                    var property = _serviceProvider.GetRequiredService<IProperty>();
-                                    property.Id = currentPropertyId;
-                                    var existingProperty = await _propertyDataService.GetByIdAsync(property);
+                                    var existingProperty = await _propertyDataService.GetByIdAsync(currentPropertyId);
 
                                     existingProperty.Statement = validatedStatement.Id;
                                     await _propertyDataService.UpdateAsync(existingProperty);

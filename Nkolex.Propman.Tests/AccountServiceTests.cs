@@ -660,5 +660,109 @@ namespace Nkolex.Propman.Tests
             Assert.Equal(sud.First().Id, account.Id);
         } 
 
+        [Fact]
+        public async Task Given_ValidAccount_UpdateUserProfileAsync_Should_Update_User_Info()
+        {
+            var account = CreateAccount();
+            await _accountDataService.AddAsync(account);
+
+            var updateRequest = Factory.Services.GetRequiredService<IAccount>();
+            updateRequest.Id = account.Id;
+            updateRequest.Name = "Jane";
+            updateRequest.Surname = "Smith";
+            updateRequest.PhoneNumber = "0987654321";
+            updateRequest.Email = "jane.smith@example.com";
+            updateRequest.AgreeToTerms = account.AgreeToTerms;
+
+            var result = await _accountService!.UpdateUserProfileAsync(updateRequest);
+            Assert.True(result);
+
+            var updatedAccount = (await _accountDataService.GetAllAsync()).First(a => a.Id == account.Id);
+            Assert.Equal("Jane", updatedAccount.Name);
+            Assert.Equal("Smith", updatedAccount.Surname);
+            Assert.Equal("0987654321", updatedAccount.PhoneNumber);
+            Assert.Equal("jane.smith@example.com", updatedAccount.Email);
+        }
+
+        [Fact]
+        public async Task Given_ValidAccount_UpdateUserProfileAsync_Should_Not_Update_Roles_Or_Properties()
+        {
+            var account = CreateAccount();
+            account.Roles = [Nkolex.Propman.Server.Constants.UserRoles.Tenant];
+            account.Properties = null;
+            await _accountDataService.AddAsync(account);
+
+            var property = CreateProperty();
+            await _propertyDataService.AddAsync(property);
+
+            var updateRequest = Factory.Services.GetRequiredService<IAccount>();
+            updateRequest.Id = account.Id;
+            updateRequest.Name = account.Name;
+            updateRequest.Surname = account.Surname;
+            updateRequest.PhoneNumber = account.PhoneNumber;
+            updateRequest.Email = account.Email;
+            updateRequest.AgreeToTerms = account.AgreeToTerms;
+            updateRequest.Roles = [Nkolex.Propman.Server.Constants.UserRoles.Admin];
+            updateRequest.Properties = [property.Id];
+
+            var result = await _accountService!.UpdateUserProfileAsync(updateRequest);
+            Assert.True(result);
+
+            var updatedAccount = (await _accountDataService.GetAllAsync()).First(a => a.Id == account.Id);
+            Assert.Equal([Nkolex.Propman.Server.Constants.UserRoles.Tenant], updatedAccount.Roles);
+            Assert.Null(updatedAccount.Properties);
+
+            var unchangedProperty = (await _propertyDataService.GetAllAsync()).First(p => p.Id == property.Id);
+            Assert.DoesNotContain(account.Id, unchangedProperty.Tenants);
+        }
+
+        [Fact]
+        public async Task Given_NullAccount_UpdateUserProfileAsync_Should_ThrowException()
+        {
+            await Assert.ThrowsAsync<ArgumentNullException>(() => _accountService!.UpdateUserProfileAsync(null!));
+        }
+
+        [Fact]
+        public async Task Given_Invalid_Account_UpdateUserProfileAsync_Should_ThrowException()
+        {
+            var updateRequest = Factory.Services.GetRequiredService<IAccount>();
+            updateRequest.Id = Guid.NewGuid();
+            updateRequest.Name = "";
+            updateRequest.Surname = "Smith";
+            updateRequest.PhoneNumber = "0987654321";
+            updateRequest.Email = "jane.smith@example.com";
+
+            await Assert.ThrowsAsync<ArgumentException>(() => _accountService!.UpdateUserProfileAsync(updateRequest));
+        }
+
+        [Fact]
+        public async Task Given_NonExistentAccount_UpdateUserProfileAsync_Should_Return_False()
+        {
+            var updateRequest = Factory.Services.GetRequiredService<IAccount>();
+            updateRequest.Id = Guid.NewGuid();
+            updateRequest.Name = "Jane";
+            updateRequest.Surname = "Smith";
+            updateRequest.PhoneNumber = "0987654321";
+            updateRequest.Email = "jane.smith@example.com";
+
+            var result = await _accountService!.UpdateUserProfileAsync(updateRequest);
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task Given_ExistingAccount_GetUserByIdAsync_Should_Return_User()
+        {
+            var account = Factory.Services.GetRequiredService<IAccount>();
+            account.Id = Guid.NewGuid();
+            account.Name = "John";
+            account.Surname = "Doe";
+            account.PhoneNumber = "1234567890";
+            account.Email = "john.doe@example.com";
+            await _accountDataService.AddAsync(account);
+
+            var result = await _accountService!.GetUserByIdAsync(account.Id);
+            Assert.NotNull(result);
+            Assert.Equal(account.Id, result.Id);
+        }
     }
 }

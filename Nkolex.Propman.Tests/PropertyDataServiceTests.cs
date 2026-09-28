@@ -37,7 +37,7 @@ namespace Nkolex.Propman.Tests
             var sut = await _propertyDataService.AddAsync(property);
             Assert.Equal(1, sut);
 
-            var repo = await _repo.GetByIdAsync(property);
+            var repo = await _repo.GetByIdAsync(property.Id);
             Assert.Equal(property.Id, repo.Id);
             Assert.Equal(property.Name, repo.Name);
             Assert.Equal(property.Address, repo.Address);

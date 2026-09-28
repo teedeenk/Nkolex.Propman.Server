@@ -185,6 +185,44 @@ namespace Nkolex.Propman.Server.Services
             return update != 0;
         }
 
+        public async Task<bool> UpdateUserProfileAsync(IAccount account)
+        {
+            if (account == null)
+            {
+                throw new ArgumentNullException(nameof(account), "Account cannot be null");
+            }
+
+            if (account.Id == Guid.Empty ||
+                string.IsNullOrWhiteSpace(account.Name) ||
+                string.IsNullOrWhiteSpace(account.Surname) ||
+                string.IsNullOrWhiteSpace(account.PhoneNumber) ||
+                string.IsNullOrWhiteSpace(account.Email))
+            {
+                throw new ArgumentException("Account must have a valid Id, Name, Surname, PhoneNumber and Email", nameof(account));
+            }
+
+            using var scope = _serviceProvider.CreateScope();
+            var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
+
+            var accounts = await dataService.GetAllAsync();
+            var existingAccount = accounts.FirstOrDefault(a => a.Id == account.Id);
+            if (existingAccount == null)
+            {
+                return false;
+            }
+
+            existingAccount.Name = account.Name;
+            existingAccount.Surname = account.Surname;
+            existingAccount.PhoneNumber = account.PhoneNumber;
+            existingAccount.Email = account.Email;
+            existingAccount.AgreeToTerms = account.AgreeToTerms;
+            existingAccount.UpdatedAt = DateTime.UtcNow;
+
+            var update = await dataService.UpdateAsync(existingAccount);
+
+            return update != 0;
+        }
+
         private static async Task UpdatePropertiesForAccountAsync(IServiceScope scope, IAccount account)
         {
             var propertyDataService = scope.ServiceProvider.GetRequiredService<IPropertyDataService<IProperty>>();
@@ -416,6 +454,20 @@ namespace Nkolex.Propman.Server.Services
             }
 
             return tenants;
+        }
+
+        public async Task<AccountResponse> GetUserByIdAsync(Guid userId)
+        {
+            if(userId == Guid.Empty)
+            {
+                throw new ArgumentException("UserId must be a valid Guid", nameof(userId));
+            }
+
+            using var scope = _serviceProvider.CreateScope();
+            var dataService = scope.ServiceProvider.GetRequiredService<IAccountDataService<IAccount>>();
+
+            var account = await dataService.GetByIdAsync(userId);
+            return AccountResponse.FromAccount(account);
         }
     }
 }

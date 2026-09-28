@@ -28,10 +28,13 @@ namespace Nkolex.Propman.Server.Services
             }
         }
 
-        public async Task<PropertyResponse> GetByIdAsync(IProperty property)
+        public async Task<PropertyResponse> GetByIdAsync(Guid id)
         {
-            ArgumentNullException.ThrowIfNull(property);
-            var result = await _dataService.GetByIdAsync(property);
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentException("Id must be a valid, non-empty Guid.", nameof(id));
+            }
+            var result = await _dataService.GetByIdAsync(id);
             var accounts = await _accountDataService.GetAllAsync();
 
             return MapToResponse(result, accounts);

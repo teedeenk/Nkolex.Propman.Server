@@ -118,6 +118,7 @@ namespace Nkolex.Propman.Server.Services
             var claims = new List<Claim>()
             {
                 new(ClaimTypes.Email, user.Email),
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new(JwtRegisteredClaimNames.Sub, user.Email),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
@@ -135,34 +136,35 @@ namespace Nkolex.Propman.Server.Services
             return await Task.FromResult(result);
         }
 
-        public async Task<User> GetUserByIdAsync(string email)
+        public async Task<User> GetUserByIdAsync(Guid userId)
         {
             if (_accountDataService is null)
             {
                 _logger.LogWarning("{IAccountDataService} doesn't exist...", nameof(IAccountDataService<IAccount>));
-                throw new ArgumentNullException(nameof(email));
+                throw new ArgumentNullException(nameof(userId));
             }
-            var allusers = await _accountDataService.GetAllAsync();
-            if (allusers.Count > 0)
+
+            if (userId == Guid.Empty)
             {
-                foreach (var account in allusers)
-                {
-                    if (account.Email.Equals(email))
-                    {
-                        var user = new User
-                        {
-                            Email = account.Email,
-                            FullName = $"{account.Name} {account.Surname}",
-                            PasswordHash = account.Password,
-                            Roles = account.Roles,
-                            SubscriptionTier = account.SubscriptionTier,
-                            EmailConfirmed = account.EmailConfirmed
-                        };
-                        return user;
-                    }
-                }
+                throw new ArgumentException("UserId must be a valid Guid", nameof(userId));
             }
-            throw new KeyNotFoundException($"User with email '{email}' not found.");
+
+            var account = await _accountDataService.GetByIdAsync(userId);
+            if (account is null || account.Id == Guid.Empty)
+            {
+                throw new KeyNotFoundException($"User with id '{userId}' not found.");
+            }
+
+            return new User
+            {
+                Id = account.Id,
+                Email = account.Email,
+                FullName = $"{account.Name} {account.Surname}",
+                PasswordHash = account.Password,
+                Roles = account.Roles,
+                SubscriptionTier = account.SubscriptionTier,
+                EmailConfirmed = account.EmailConfirmed
+            };
         }
     }
 }

@@ -109,7 +109,7 @@ namespace Nkolex.Propman.Tests
             var result = await uploadCsvService.AddAsync(statement);
             Assert.Equal(1, result);
 
-            var updatedProperty = await propertyDataService.GetByIdAsync(property);
+            var updatedProperty = await propertyDataService.GetByIdAsync(property.Id);
             Assert.NotEqual(Guid.Empty, updatedProperty.Statement);
             Assert.Equal(statement.Id, updatedProperty.Statement);
         }

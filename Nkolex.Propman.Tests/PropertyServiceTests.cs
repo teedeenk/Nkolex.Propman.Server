@@ -37,7 +37,7 @@ namespace Nkolex.Propman.Tests
             var sud = await _propertyService.UpdatePropertyAsync(updatedProperty);
             Assert.NotNull(sud);
 
-            var getUpdatedProperty = await _propertyService.GetByIdAsync(property);
+            var getUpdatedProperty = await _propertyService.GetByIdAsync(property.Id);
             Assert.NotNull(getUpdatedProperty);
             Assert.Equal(getUpdatedProperty.Statement, updatedProperty.Statement);
         }
@@ -49,7 +49,7 @@ namespace Nkolex.Propman.Tests
             var addProperty = await _propertyService.UploadPropertyAsync(property);
             Assert.NotNull(addProperty);
 
-            var sud = await _propertyService.GetByIdAsync(property);
+            var sud = await _propertyService.GetByIdAsync(property.Id);
             Assert.NotNull(sud);
             Assert.Equal(property.Id, sud.Id);
             Assert.Equal(property.Name, sud.Name);

@@ -60,16 +60,15 @@ namespace Nkolex.Propman.Server.Controllers
         [HttpGet("profile")]
         public async Task<IActionResult> GetProfile()
         {
-            var email = User.FindFirst(ClaimTypes.Email)?.Value;
-            if(email == null)
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId))
             {
                 return BadRequest();
             }
 
-            var user = await _authService.GetUserByIdAsync(email);
+            var user = await _authService.GetUserByIdAsync(userId);
             var fullName = user.FullName;
             var roles = user.Roles;
-            var userId = user.Id;
             var subscriptionTier = user.SubscriptionTier;
             return Ok(new { fullName, roles, userId, subscriptionTier});
         }

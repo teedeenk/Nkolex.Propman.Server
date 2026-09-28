@@ -36,7 +36,7 @@ namespace Nkolex.Propman.Server.Data
             }
         }
 
-        public Task<IInvoice> GetByIdAsync(IInvoice entity)
+        public Task<IInvoice> GetByIdAsync(Guid id)
         {
             throw new NotImplementedException();
         }

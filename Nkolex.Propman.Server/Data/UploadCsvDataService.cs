@@ -72,7 +72,7 @@ namespace Nkolex.Propman.Server.Data
             return converted;
         }
 
-        public Task<Statement> GetByIdAsync(Statement entity)
+        public Task<Statement> GetByIdAsync(Guid id)
         {
             throw new NotImplementedException();
         }

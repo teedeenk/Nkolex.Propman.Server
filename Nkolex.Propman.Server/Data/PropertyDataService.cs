@@ -59,10 +59,13 @@ namespace Nkolex.Propman.Server.Data
             return await _repo.GetAllAsync();
         }
 
-        public Task<TProperty> GetByIdAsync(TProperty entity)
+        public Task<TProperty> GetByIdAsync(Guid id)
         {
-            ArgumentNullException.ThrowIfNull(entity);
-            return _repo.GetByIdAsync(entity);
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentException("Id must be a valid, non-empty Guid.", nameof(id));
+            }
+            return _repo.GetByIdAsync(id);
         }
 
         public Task<int> UpdateAsync(TProperty entity)

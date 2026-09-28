@@ -1,10 +1,13 @@
-﻿namespace Nkolex.Propman.Server.Abstractions
+﻿using Nkolex.Propman.Server.Models.DTOs;
+
+namespace Nkolex.Propman.Server.Abstractions
 {
     public interface IAccountService
     {
         Task<ICreateAccountResponse> AddUserAsync(ICreateAccountRequest createAccountRequest);
         Task<bool> ApproveUser(IAccount account);
         Task<bool> UpdateUserAsync(IAccount account);
+        Task<bool> UpdateUserProfileAsync(IAccount account);
         Task<List<IAccount>> GetAllUsersAsync();
         Task<bool> ConfirmEmailAsync(string token);
         Task ResendConfirmationEmailAsync(string email);
@@ -12,5 +15,6 @@
         Task<bool> ResetPasswordAsync(string token, string newPassword);
         Task<bool> DeleteUserAsync(IAccount account);
         Task<List<IAccount>> GetAllTenantsAsync (IProperty property);
+        Task<AccountResponse> GetUserByIdAsync(Guid userId);
     }
 }
