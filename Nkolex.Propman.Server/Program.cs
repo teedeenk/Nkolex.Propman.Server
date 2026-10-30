@@ -49,6 +49,9 @@ namespace Nkolex.Propman.Server
             builder.Services.AddTransient<IInvoiceService, InvoiceService>();
             builder.Services.AddTransient<IInvoiceDataService<IInvoice>, InvoiceDataService>();
             builder.Services.AddTransient<ICreateInvoiceRequest, CreateInvoiceRequest>();
+            builder.Services.AddTransient<IActivity, Activity>();
+            builder.Services.AddTransient<IActivityService, ActivityService>();
+            builder.Services.AddTransient<IActivityDataService<IActivity>, ActivityDataService>();
             builder.Services.AddMemoryCache();
             builder.Services.AddSingleton<Func<Type, Type?>>(sp =>
                 t =>
